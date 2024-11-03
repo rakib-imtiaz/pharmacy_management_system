@@ -1,103 +1,89 @@
 <?php
 require_once '../includes/db_connect.php';
-require_once '../includes/header.php';
+session_start();
+include_once '../includes/header.php';
 
-// Get prescriptions with related customer and doctor information
-$prescriptions = $pdo->query("
-    SELECT p.*, 
-           c.name as customer_name,
-           d.name as doctor_name,
-           COUNT(pi.prescription_item_id) as item_count
+// Fetch prescriptions with related information
+$query = "
+    SELECT 
+        p.prescription_id,
+        p.prescription_date,
+        p.status,
+        c.name as customer_name,
+        d.name as doctor_name,
+        u.username as created_by
     FROM PRESCRIPTION p
     JOIN CUSTOMER c ON p.customer_id = c.customer_id
     JOIN DOCTOR d ON p.doctor_id = d.doctor_id
-    LEFT JOIN PRESCRIPTION_ITEM pi ON p.prescription_id = pi.prescription_id
-    GROUP BY p.prescription_id
+    JOIN USER u ON p.user_id = u.user_id
     ORDER BY p.prescription_date DESC
-")->fetchAll();
+";
+$prescriptions = $pdo->query($query)->fetchAll();
 ?>
 
-<div class="container mx-auto">
-    <div class="flex justify-between items-center mb-6">
-        <h2 class="text-2xl font-bold">Prescriptions Management</h2>
-        <a href="prescription_add.php" class="bg-blue-500 text-white px-4 py-2 rounded">New Prescription</a>
-    </div>
+<div class="relative min-h-screen">
+    <div class="container mx-auto px-6 py-8">
+        <!-- Header Section -->
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-3xl font-bold text-gray-800">
+                Prescriptions Management
+            </h2>
+            <a href="<?php echo $base_url; ?>prescriptions/create_new_prescription.php" 
+               class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg transition">
+                <i class="fas fa-plus mr-2"></i>New Prescription
+            </a>
+        </div>
 
-    <!-- Status Summary Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-white p-4 rounded shadow">
-            <h3 class="text-lg font-semibold text-gray-700">Total Prescriptions</h3>
-            <p class="text-2xl font-bold text-blue-600">
-                <?= $pdo->query("SELECT COUNT(*) FROM PRESCRIPTION")->fetchColumn() ?>
-            </p>
+        <!-- Prescriptions Table -->
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Doctor</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created By</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    <?php foreach ($prescriptions as $prescription): ?>
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap"><?php echo $prescription['prescription_id']; ?></td>
+                            <td class="px-6 py-4 whitespace-nowrap"><?php echo date('M d, Y', strtotime($prescription['prescription_date'])); ?></td>
+                            <td class="px-6 py-4 whitespace-nowrap"><?php echo htmlspecialchars($prescription['customer_name']); ?></td>
+                            <td class="px-6 py-4 whitespace-nowrap"><?php echo htmlspecialchars($prescription['doctor_name']); ?></td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                    <?php echo $prescription['status'] === 'Filled' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'; ?>">
+                                    <?php echo $prescription['status']; ?>
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap"><?php echo htmlspecialchars($prescription['created_by']); ?></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <a href="<?php echo $base_url; ?>prescriptions/view_prescription.php?id=<?php echo $prescription['prescription_id']; ?>" 
+                                   class="text-blue-600 hover:text-blue-900 mr-3">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="<?php echo $base_url; ?>prescriptions/edit_prescription.php?id=<?php echo $prescription['prescription_id']; ?>" 
+                                   class="text-green-600 hover:text-green-900 mr-3">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <?php if ($prescription['status'] !== 'Filled'): ?>
+                                    <a href="<?php echo $base_url; ?>prescriptions/fill_prescription.php?id=<?php echo $prescription['prescription_id']; ?>" 
+                                       class="text-purple-600 hover:text-purple-900">
+                                        <i class="fas fa-prescription-bottle-alt"></i>
+                                    </a>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
         </div>
-        <div class="bg-white p-4 rounded shadow">
-            <h3 class="text-lg font-semibold text-gray-700">Pending</h3>
-            <p class="text-2xl font-bold text-yellow-600">
-                <?= $pdo->query("SELECT COUNT(*) FROM PRESCRIPTION WHERE status = 'Pending'")->fetchColumn() ?>
-            </p>
-        </div>
-        <div class="bg-white p-4 rounded shadow">
-            <h3 class="text-lg font-semibold text-gray-700">Filled</h3>
-            <p class="text-2xl font-bold text-green-600">
-                <?= $pdo->query("SELECT COUNT(*) FROM PRESCRIPTION WHERE status = 'Filled'")->fetchColumn() ?>
-            </p>
-        </div>
-        <div class="bg-white p-4 rounded shadow">
-            <h3 class="text-lg font-semibold text-gray-700">Today's Prescriptions</h3>
-            <p class="text-2xl font-bold text-purple-600">
-                <?= $pdo->query("SELECT COUNT(*) FROM PRESCRIPTION WHERE DATE(prescription_date) = CURDATE()")->fetchColumn() ?>
-            </p>
-        </div>
-    </div>
-
-    <div class="bg-white shadow-md rounded overflow-x-auto">
-        <table class="min-w-full">
-            <thead class="bg-gray-100">
-                <tr>
-                    <th class="px-6 py-3 text-left">ID</th>
-                    <th class="px-6 py-3 text-left">Date</th>
-                    <th class="px-6 py-3 text-left">Customer</th>
-                    <th class="px-6 py-3 text-left">Doctor</th>
-                    <th class="px-6 py-3 text-left">Items</th>
-                    <th class="px-6 py-3 text-left">Status</th>
-                    <th class="px-6 py-3 text-left">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($prescriptions as $prescription): ?>
-                <tr class="border-b">
-                    <td class="px-6 py-4"><?= htmlspecialchars($prescription['prescription_id']) ?></td>
-                    <td class="px-6 py-4"><?= date('Y-m-d', strtotime($prescription['prescription_date'])) ?></td>
-                    <td class="px-6 py-4"><?= htmlspecialchars($prescription['customer_name']) ?></td>
-                    <td class="px-6 py-4"><?= htmlspecialchars($prescription['doctor_name']) ?></td>
-                    <td class="px-6 py-4"><?= htmlspecialchars($prescription['item_count']) ?></td>
-                    <td class="px-6 py-4">
-                        <span class="px-2 py-1 rounded text-sm
-                            <?php
-                            switch($prescription['status']) {
-                                case 'Pending': echo 'bg-yellow-100 text-yellow-800'; break;
-                                case 'Filled': echo 'bg-green-100 text-green-800'; break;
-                                default: echo 'bg-gray-100 text-gray-800';
-                            }
-                            ?>">
-                            <?= htmlspecialchars($prescription['status']) ?>
-                        </span>
-                    </td>
-                    <td class="px-6 py-4">
-                        <a href="prescription_items.php?id=<?= $prescription['prescription_id'] ?>" 
-                           class="text-blue-500">View Items</a>
-                        <a href="prescription_edit.php?id=<?= $prescription['prescription_id'] ?>" 
-                           class="text-blue-500 ml-2">Edit</a>
-                        <a href="prescription_delete.php?id=<?= $prescription['prescription_id'] ?>" 
-                           class="text-red-500 ml-2" 
-                           onclick="return confirm('Are you sure you want to delete this prescription?')">Delete</a>
-                    </td>
-                </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
     </div>
 </div>
 
-<?php require_once '../includes/footer.php'; ?> 
+<?php include_once 'includes/footer.php'; ?> 

@@ -1,0 +1,150 @@
+Certainly! Below, I will provide you with a **detailed prompt** that you can use to guide the development of this project. This prompt is designed to cover all aspects of building the pharmacy management system, from backend database interactions to frontend user interface considerations.
+
+---
+
+### **Detailed Prompt to Build the Pharmacy Management System**
+
+#### **Project Overview**:
+Create a **Pharmacy Management System** using PHP, MySQL, HTML, CSS, and JavaScript. The system should be organized into multiple features to manage customers, prescriptions, sales, suppliers, and users, touching all database tables at least once for CRUD operations.
+
+The system should be a **simple yet functional prototype** that demonstrates a basic understanding of a complete web application workflow, including authentication, CRUD operations, and logical database relationships. The focus is on developing features that allow seamless pharmacy management in a user-friendly web application.
+
+---
+
+#### **Key Features and Requirements**:
+
+1. **User Authentication & Role Management**:
+   - **Login**: Users must log in using their username and password, authenticated against the `USER` table.
+   - **Roles**: Role-based access must be implemented. Users have different levels of permissions:
+     - **Admin**: Manage users, view audit logs, and access all features.
+     - **Cashier/Pharmacist**: Manage customers, sales, inventory, and create prescriptions.
+
+2. **Customer Management**:
+   - **Add Customer**: Add new customer details to the system using a form.
+   - **Update Customer**: Update customer contact information.
+   - **Delete Customer**: Remove a customer from the system.
+   - **List Customers**: List all customers in a simple table format.
+
+3. **Inventory Management**:
+   - **View Drugs by Category**: Allow users to filter and view drugs by category (`DRUG_CATEGORY` table).
+   - **View Stock**: Display current stock of drugs, including quantity and expiry (`STOCK_ITEM`).
+   - **Update Stock**: Adjust the stock levels for each drug, including updating expiry dates.
+
+4. **Prescription Management**:
+   - **Create Prescription**: Users (pharmacists) can create new prescriptions for customers. Each prescription is linked to a customer, doctor, and specific drugs.
+   - **Update Prescription**: Edit an existing prescription to modify dosage or drug selection.
+   - **Delete Prescription**: Remove an entire prescription along with its associated items.
+
+5. **Sales Management**:
+   - **New Sale**: Record a new over-the-counter sale for a customer, adding one or more drugs to the sale.
+   - **Update Sale**: Modify details of an existing sale (such as items or quantities sold).
+   - **Delete Sale**: Delete a sale and its associated items.
+
+6. **Supplier and Invoice Management**:
+   - **Create Supplier**: Add new suppliers to the system.
+   - **Update/Delete Supplier**: Edit or remove supplier information.
+   - **Create Invoice**: Create a new invoice for a supplier after receiving stock.
+   - **Update/Delete Invoice**: Edit invoice details or delete an invoice.
+
+7. **Payment Tracking**:
+   - **Record Payment**: Enter payment details for invoices.
+   - **Update/Delete Payment**: Modify or delete a payment entry.
+
+8. **Audit Logs**:
+   - **View Audit Log**: Admin can view a list of audit entries to track user actions in the system (e.g., logging in, adding records, deleting records).
+
+9. **Dashboard Overview**:
+   - **Dashboard**: Include a dashboard with key metrics like total number of customers, sales records, prescriptions, and alerts for low stock drugs.
+
+---
+
+#### **Project Structure and Implementation Plan**:
+
+##### **Project Folder Structure**:
+1. **`assets/`**:
+   - **CSS and JS files** for styles (`styles.css`) and JavaScript (`script.js`).
+
+2. **`includes/`**:
+   - **`db_connect.php`**: Create a database connection script using MySQLi or PDO.
+   - **`header.php` and `footer.php`**: Include common layout elements.
+   - **`auth.php`**: Restrict unauthorized access.
+   - **`nav.php`**: Navigation bar that adjusts based on the user’s role.
+
+3. **`pages/`**: Separate directories for each module:
+   - **User** (`login.php`, `add_user.php`, `update_user.php`, etc.).
+   - **Customer**, **Drug**, **Prescription**, **Sales**, **Invoice**, **Payment**, **Supplier**, **Audit**, and **Dashboard**.
+
+##### **Implementation Details**:
+
+1. **Database Setup**:
+   - **Tables**: The following tables must be created with primary and foreign keys where applicable:
+     - `USER`, `CUSTOMER`, `DRUG`, `DRUG_CATEGORY`, `SUPPLIER`, `STOCK_ITEM`, `PRESCRIPTION`, `PRESCRIPTION_ITEM`, `INVOICE`, `INVOICE_ITEM`, `PAYMENT`, `COUNTER_SALE`, `COUNTER_SALE_ITEM`, `AUDIT_LOG`.
+   - **Relationships**: 
+     - Ensure appropriate **foreign keys** exist for linking entities like `PRESCRIPTION` and `CUSTOMER`, `COUNTER_SALE` and `CUSTOMER`, etc.
+   - **Use of AUTO_INCREMENT** for IDs where applicable.
+
+2. **Database Connection (`db_connect.php`)**:
+   - **Secure connection** using environment variables or configuration file for sensitive data (username, password).
+   - Use **PDO** for better error handling and prepared statements for avoiding SQL injection.
+
+3. **Authentication**:
+   - **`login.php`**: Implement a basic login form. Validate username and password from `USER` table. Use **sessions** to manage login state.
+   - **Authorization (`auth.php`)**: Restrict access to pages based on user role. Only admins can access user management and audit logs.
+
+4. **Page Flow**:
+   - After **login**, redirect the user to **dashboard.php**.
+   - Based on the user role, the navigation bar (`nav.php`) will show different menus.
+   - Every **feature page** (e.g., `add_customer.php`, `update_customer.php`) must include `header.php`, `nav.php`, and `footer.php` to keep a consistent layout.
+
+5. **CRUD Operations**:
+   - **Insert**: Forms for adding new records (e.g., customers, prescriptions, sales).
+   - **Select**: Pages for listing existing records with search or filter capabilities.
+   - **Update**: Forms pre-filled with existing data for easy modification.
+   - **Delete**: Each delete action should include a confirmation prompt to prevent accidental deletions.
+
+6. **Form Handling**:
+   - **Validation**: Use PHP server-side validation for critical fields (e.g., usernames, email formats).
+   - **JavaScript (optional)**: Add client-side validation for a better user experience (e.g., making sure mandatory fields are filled).
+
+7. **Dashboard (`dashboard.php`)**:
+   - Display **summaries**: Total number of customers, total sales, low stock alerts.
+   - Use **SQL aggregate functions** (e.g., `COUNT()`, `SUM()`) to generate these metrics.
+
+8. **Audit Logs**:
+   - Record each major action (e.g., adding or deleting customers, sales, updating inventory) into the `AUDIT_LOG` table.
+   - The **audit viewer (`view_audit.php`)** should show who performed which action and when.
+
+9. **Navigation and User Flow**:
+   - **Navigation (`nav.php`)**: Include links to dashboard, customer management, prescriptions, inventory, sales, etc.
+   - Adjust **visibility of links** based on role (e.g., only admins can see "User Management").
+
+---
+
+#### **Technical Guidelines**:
+
+1. **PHP Development**:
+   - Use **PHP 7+** for type safety and the latest features.
+   - Write reusable functions for database operations where possible.
+   - Use **prepared statements** with PDO for all database operations to prevent SQL injection.
+
+2. **Styling & User Experience**:
+   - Use **basic CSS** to ensure pages look organized.
+   - Include responsive elements to make the UI accessible across different devices.
+   - JavaScript (optional) for **enhancing form interactions** or showing confirmation prompts before critical actions (e.g., delete operations).
+
+3. **Testing**:
+   - Test all forms for **insertion, updates, deletions** with dummy data.
+   - Validate user login and role restrictions for sensitive features.
+   - **Data Consistency**: Ensure foreign keys are respected when deleting or updating records (e.g., when deleting a customer, their prescriptions must also be removed if no longer valid).
+
+4. **Deployment**:
+   - Ensure that **db_connect.php** is updated for production environment settings (e.g., different credentials).
+   - Consider a simple **hosting service** that supports PHP and MySQL for deployment (like Heroku, 000webhost, or similar).
+
+---
+
+### **Conclusion**:
+
+This prompt provides a comprehensive guide to building a simple yet functional **Pharmacy Management System** in PHP. The project covers user authentication, customer management, inventory handling, sales, supplier invoicing, and more—all while touching on each table to demonstrate CRUD capabilities.
+
+Focus on keeping the code clean and straightforward, suitable for a university project, while ensuring each part of the system fulfills a necessary function that demonstrates practical knowledge of relational databases, PHP, and web development. Good luck, and let me know if you need further help on any part of this implementation!

@@ -165,7 +165,7 @@ INSERT INTO SUPPLIER (name, contact_info, payment_terms) VALUES
 ('MediSupply', 'info@medisupply.com', 'Net 45');
 
 INSERT INTO USER (username, password_hash, role, last_login) VALUES
-('admin', 'hashed_password_here', 'Administrator', '2023-05-01 09:00:00'),
+('admin', 'admin', 'Administrator', '2023-05-01 09:00:00'),
 ('cashier1', 'hashed_password_here', 'Cashier', '2023-05-01 08:30:00');
 
 INSERT INTO STOCK_ITEM (drug_id, supplier_id, quantity, expiry_date, unit_price, user_id) VALUES
