@@ -1,0 +1,182 @@
+**Project Prompt: Pharmacy Management System**
+
+Develop a simple web application using **PHP**, **MySQL**, and **Tailwind CSS** that demonstrates **CRUD (Create, Read, Update, Delete)** operations for a Pharmacy Management System. The application should be organized using the following directory structure and focus on simplicity, making it suitable for a university project demo.
+
+---
+
+### **Directory Structure:**
+
+```
+/pharmacy_system/
+│
+├── index.php
+├── login.php
+├── logout.php
+│
+├── dashboard.php
+│
+├── users/
+│   ├── users.php
+│   ├── user_add.php
+│   ├── user_edit.php
+│   └── user_delete.php
+│
+├── customers/
+│   ├── customers.php
+│   ├── customer_add.php
+│   ├── customer_edit.php
+│   └── customer_delete.php
+│
+├── doctors/
+│   ├── doctors.php
+│   ├── doctor_add.php
+│   ├── doctor_edit.php
+│   └── doctor_delete.php
+│
+├── drugs/
+│   ├── categories.php
+│   ├── category_add.php
+│   ├── category_edit.php
+│   ├── category_delete.php
+│   ├── drugs.php
+│   ├── drug_add.php
+│   ├── drug_edit.php
+│   └── drug_delete.php
+│
+├── suppliers/
+│   ├── suppliers.php
+│   ├── supplier_add.php
+│   ├── supplier_edit.php
+│   └── supplier_delete.php
+│
+├── inventory/
+│   ├── inventory.php
+│   ├── stock_add.php
+│   ├── stock_edit.php
+│   └── stock_delete.php
+│
+├── prescriptions/
+│   ├── prescriptions.php
+│   ├── prescription_add.php
+│   ├── prescription_edit.php
+│   ├── prescription_delete.php
+│   └── prescription_items.php
+│
+├── invoices/
+│   ├── invoices.php
+│   ├── invoice_add.php
+│   ├── invoice_edit.php
+│   ├── invoice_delete.php
+│   └── invoice_items.php
+│
+├── payments/
+│   ├── payments.php
+│   ├── payment_add.php
+│   └── payment_view.php
+│
+├── sales/
+│   ├── sales.php
+│   ├── sale_add.php
+│   └── sale_view.php
+│
+├── audits/
+│   └── audit_logs.php
+│
+├── includes/
+│   ├── header.php
+│   ├── footer.php
+│   ├── db_connect.php
+│   └── functions.php
+│
+├── assets/
+│   ├── css/
+│   └── js/
+│
+└── README.md
+```
+
+---
+
+### **Project Guidelines:**
+
+- **Database Setup:**
+  - Use the provided SQL script to create and populate your database.
+  - Ensure all tables are properly set up and relationships are defined.
+
+- **Technologies:**
+  - **Backend:** PHP
+  - **Database:** MySQL
+  - **Frontend Styling:** Tailwind CSS (include via CDN for simplicity)
+
+- **Core Requirements:**
+  - Implement CRUD operations for each entity/table.
+  - Use the directory structure above to organize your files.
+  - Keep the code simple and well-commented for easy understanding.
+  - Include common components like header, footer, and database connection in the `includes/` directory.
+
+- **Styling and UI:**
+  - Use Tailwind CSS for basic styling to keep the design clean and simple.
+  - Focus on functionality over complex design elements.
+
+- **Security:**
+  - Use prepared statements for all database queries to prevent SQL injection.
+  - Sanitize user inputs where necessary.
+
+- **Authentication (Optional for Simplicity):**
+  - Implement basic user authentication using sessions.
+  - Use the `login.php` and `logout.php` scripts for user login management.
+
+- **Testing:**
+  - Verify that all CRUD operations work correctly for each entity.
+  - Ensure navigation links correctly route to their respective pages.
+  - Test forms for proper data handling and validation.
+
+---
+
+### **Additional Notes:**
+
+- **Simplicity is Key:**
+  - Aim for a straightforward implementation without unnecessary complexity.
+  - The primary goal is to demonstrate CRUD operations effectively.
+
+- **Comments and Documentation:**
+  - Comment your code to explain the functionality of different sections.
+  - Provide a `README.md` with setup instructions and usage guidelines.
+
+- **Assumptions:**
+  - Users have basic knowledge of PHP and web development.
+  - The application will run on a local server environment like XAMPP or WAMP.
+
+---
+
+### **Steps to Complete the Project:**
+
+1. **Set Up the Development Environment:**
+   - Install PHP and MySQL (via XAMPP, WAMP, etc.).
+   - Create the database using the provided SQL script.
+
+2. **Configure Database Connection:**
+   - Update `includes/db_connect.php` with your database credentials.
+
+3. **Create Common Includes:**
+   - Implement `header.php`, `footer.php`, and `functions.php` in the `includes/` directory.
+
+4. **Implement CRUD Operations:**
+   - For each entity (e.g., customers, doctors), create the necessary PHP scripts as per the directory structure.
+   - Ensure each script handles its respective CRUD functionality.
+
+5. **Design the User Interface:**
+   - Use Tailwind CSS classes to style your pages.
+   - Keep the layout consistent across different pages.
+
+6. **Testing and Debugging:**
+   - Test each CRUD operation thoroughly.
+   - Fix any issues or bugs encountered during testing.
+
+7. **Finalize and Document:**
+   - Review your code for any improvements.
+   - Update the `README.md` with any additional information.
+
+---
+
+**By following this prompt and using the specified directory structure, you'll create a simple and functional web application that effectively demonstrates CRUD operations for all the tables in your Pharmacy Management System.**
