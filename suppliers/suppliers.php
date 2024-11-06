@@ -12,9 +12,36 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'Administrator') {
 if (isset($_POST['delete_supplier'])) {
     $supplier_id = $_POST['supplier_id'];
     try {
-        $stmt = $pdo->prepare("DELETE FROM SUPPLIER WHERE supplier_id = ?");
-        $stmt->execute([$supplier_id]);
-        $_SESSION['success'] = "Supplier deleted successfully";
+        // First check if supplier has any related invoices
+        $check_stmt = $pdo->prepare("
+            SELECT COUNT(*) as count 
+            FROM INVOICE 
+            WHERE supplier_id = ?
+        ");
+        $check_stmt->execute([$supplier_id]);
+        $result = $check_stmt->fetch();
+
+        if ($result['count'] > 0) {
+            $_SESSION['error'] = "Cannot delete supplier: This supplier has related invoices. Please delete the invoices first.";
+        } else {
+            // Also check for related stock items
+            $check_stock_stmt = $pdo->prepare("
+                SELECT COUNT(*) as count 
+                FROM STOCK_ITEM 
+                WHERE supplier_id = ?
+            ");
+            $check_stock_stmt->execute([$supplier_id]);
+            $stock_result = $check_stock_stmt->fetch();
+
+            if ($stock_result['count'] > 0) {
+                $_SESSION['error'] = "Cannot delete supplier: This supplier has related stock items. Please delete the stock items first.";
+            } else {
+                // If no related records exist, proceed with deletion
+                $delete_stmt = $pdo->prepare("DELETE FROM SUPPLIER WHERE supplier_id = ?");
+                $delete_stmt->execute([$supplier_id]);
+                $_SESSION['success'] = "Supplier deleted successfully";
+            }
+        }
     } catch (PDOException $e) {
         $_SESSION['error'] = "Error deleting supplier: " . $e->getMessage();
     }

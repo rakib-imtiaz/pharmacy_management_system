@@ -83,6 +83,10 @@ $is_admin = ($_SESSION['role'] === 'Administrator');
                         <i class="fas fa-users-cog nav-icon text-white"></i>
                         <span>Users</span>
                     </a>
+                    <a href="<?php echo $base_url; ?>invoices/invoices.php" class="nav-link text-white">
+                        <i class="fas fa-file-invoice nav-icon text-white"></i>
+                        <span>Invoices</span>
+                    </a>
                     <?php endif; ?>
                 </div>
 
