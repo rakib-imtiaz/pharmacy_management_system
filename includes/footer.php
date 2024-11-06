@@ -1,11 +1,11 @@
     </div>
-    <footer class="bg-gradient text-white mt-auto">
+    <footer class="bg-blue-600 text-white mt-auto">
         <div class="container mx-auto px-6 py-8">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
                 <!-- Company Info -->
                 <div class="animate__animated animate__fadeIn">
                     <h3 class="text-lg font-semibold mb-4">PharmaCare</h3>
-                    <p class="text-sm text-gray-300">
+                    <p class="text-sm text-gray-100">
                         Your trusted pharmacy management solution for efficient healthcare delivery.
                     </p>
                 </div>
@@ -14,9 +14,9 @@
                 <div>
                     <h3 class="text-lg font-semibold mb-4">Quick Links</h3>
                     <ul class="space-y-2 text-sm">
-                        <li><a href="<?php echo $base_url; ?>about.php" class="hover:text-blue-200 transition">About Us</a></li>
-                        <li><a href="<?php echo $base_url; ?>contact.php" class="hover:text-blue-200 transition">Contact</a></li>
-                        <li><a href="<?php echo $base_url; ?>privacy.php" class="hover:text-blue-200 transition">Privacy Policy</a></li>
+                        <li><a href="<?php echo $base_url; ?>about.php" class="hover:text-gray-200 transition">About Us</a></li>
+                        <li><a href="<?php echo $base_url; ?>contact.php" class="hover:text-gray-200 transition">Contact</a></li>
+                        <li><a href="<?php echo $base_url; ?>privacy.php" class="hover:text-gray-200 transition">Privacy Policy</a></li>
                     </ul>
                 </div>
 
@@ -39,13 +39,13 @@
                 <div>
                     <h3 class="text-lg font-semibold mb-4">Follow Us</h3>
                     <div class="flex space-x-4">
-                        <a href="#" class="hover:text-blue-200 transition">
+                        <a href="#" class="hover:text-gray-200 transition">
                             <i class="fab fa-facebook fa-lg"></i>
                         </a>
-                        <a href="#" class="hover:text-blue-200 transition">
+                        <a href="#" class="hover:text-gray-200 transition">
                             <i class="fab fa-twitter fa-lg"></i>
                         </a>
-                        <a href="#" class="hover:text-blue-200 transition">
+                        <a href="#" class="hover:text-gray-200 transition">
                             <i class="fab fa-linkedin fa-lg"></i>
                         </a>
                     </div>
@@ -53,7 +53,7 @@
             </div>
 
             <!-- Copyright -->
-            <div class="border-t border-blue-700 mt-8 pt-8 text-center text-sm">
+            <div class="border-t border-blue-500 mt-8 pt-8 text-center text-sm">
                 <p>&copy; <?php echo date('Y'); ?> PharmaCare. All rights reserved.</p>
                 <?php if (isset($_SESSION['last_login'])): ?>
                 <p class="mt-2 text-sm text-gray-300">
