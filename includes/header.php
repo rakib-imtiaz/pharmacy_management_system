@@ -74,7 +74,10 @@ $is_admin = ($_SESSION['role'] === 'Administrator');
                         <span>Suppliers</span>
                     </a>
                     
-                   
+                    <a href="<?php echo $base_url; ?>doctors/doctors.php" class="nav-link text-white">
+                        <i class="fas fa-user-md nav-icon text-white"></i>
+                        <span>Doctors</span>
+                    </a>
                     
                     <a href="<?php echo $base_url; ?>users/users.php" class="nav-link text-white">
                         <i class="fas fa-users-cog nav-icon text-white"></i>
