@@ -78,7 +78,7 @@ $stock_items = $pdo->query($stock_query)->fetchAll();
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap"><?php echo $sale['total_items']; ?></td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            $<?php echo number_format($sale['total_amount'], 2); ?>
+                            ৳<?php echo number_format($sale['total_amount'], 2); ?>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <?php echo htmlspecialchars($sale['cashier_name']); ?>
