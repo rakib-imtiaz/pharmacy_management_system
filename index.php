@@ -21,6 +21,7 @@ $stats = [];
 if ($is_admin) {
     $stats = [
         ['icon' => 'fas fa-pills', 'title' => 'Total Drugs', 'query' => "SELECT COUNT(*) FROM DRUG", 'color' => 'blue'],
+        ['icon' => 'fas fa-user-md', 'title' => 'Doctors', 'query' => "SELECT COUNT(*) FROM DOCTOR", 'color' => 'indigo'],
         ['icon' => 'fas fa-users', 'title' => 'Customers', 'query' => "SELECT COUNT(*) FROM CUSTOMER", 'color' => 'green'],
         ['icon' => 'fas fa-file-prescription', 'title' => 'Prescriptions', 'query' => "SELECT COUNT(*) FROM PRESCRIPTION", 'color' => 'purple'],
         ['icon' => 'fas fa-cash-register', 'title' => 'Total Sales', 'query' => "SELECT COUNT(*) FROM COUNTER_SALE", 'color' => 'yellow']
@@ -44,7 +45,7 @@ if ($is_admin) {
     </h2>
 
     <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-<?php echo $is_admin ? '4' : '3'; ?> gap-6 mb-12">
+    <div class="grid grid-cols-1 md:grid-cols-<?php echo $is_admin ? '5' : '3'; ?> gap-6 mb-12">
         <?php foreach ($stats as $stat): ?>
             <?php
             $stmt = $pdo->query($stat['query']);
