@@ -3,7 +3,7 @@ require_once '../includes/db_connect.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = $_POST['username'];
-    $password = $_POST['password'];
+    $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
     $role = $_POST['role'];
 
     try {
@@ -57,7 +57,7 @@ require_once '../includes/header.php';
                             class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
                         <option value="Administrator">Administrator</option>
                         <option value="Cashier">Cashier</option>
-                        <option value="Pharmacist">Pharmacist</option>
+                        <option value="Supplier">Supplier</option>
                     </select>
                 </div>
 

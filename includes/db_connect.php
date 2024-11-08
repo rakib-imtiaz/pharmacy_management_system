@@ -1,8 +1,8 @@
 <?php
 $host = '127.0.0.1';
 $dbname = 'pharmacy_system';
-$username = 'noman';
-$password = 'noman';
+$username = 'root';
+$password = '';
 $base_url = 'http://127.0.0.1/pharmacy_management_system/';
 
 

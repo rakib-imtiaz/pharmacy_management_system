@@ -15,6 +15,7 @@ $user_id = $_SESSION['user_id'];
 $username = $_SESSION['username'];
 $role = $_SESSION['role'];
 $is_admin = ($role === 'Administrator');
+$is_supplier = ($role === 'Supplier');
 
 // Get statistics based on role
 $stats = [];
@@ -25,6 +26,12 @@ if ($is_admin) {
         ['icon' => 'fas fa-users', 'title' => 'Customers', 'query' => "SELECT COUNT(*) FROM CUSTOMER", 'color' => 'green'],
         ['icon' => 'fas fa-file-prescription', 'title' => 'Prescriptions', 'query' => "SELECT COUNT(*) FROM PRESCRIPTION", 'color' => 'purple'],
         ['icon' => 'fas fa-cash-register', 'title' => 'Total Sales', 'query' => "SELECT COUNT(*) FROM COUNTER_SALE", 'color' => 'yellow']
+    ];
+} elseif ($is_supplier) {
+    // Supplier statistics
+    $stats = [
+        ['icon' => 'fas fa-box', 'title' => 'Supplied Products', 'query' => "SELECT COUNT(*) FROM DRUG WHERE supplier_id = $user_id", 'color' => 'green'],
+        ['icon' => 'fas fa-truck', 'title' => 'Stock Items', 'query' => "SELECT COUNT(*) FROM stock_item WHERE supplier_id = $user_id", 'color' => 'blue']
     ];
 } else {
     // Cashier statistics
@@ -40,12 +47,20 @@ if ($is_admin) {
     <h2 class="text-3xl font-bold text-gray-800 mb-8 animate__animated animate__fadeIn">
         Welcome back, <?php echo htmlspecialchars($username); ?>
         <span class="block text-lg font-normal text-gray-600 mt-2">
-            <?php echo $is_admin ? 'Administrator Dashboard' : 'Cashier Dashboard'; ?>
+            <?php 
+            if ($is_admin) {
+                echo 'Administrator Dashboard';
+            } elseif ($is_supplier) {
+                echo 'Supplier Dashboard';
+            } else {
+                echo 'Cashier Dashboard';
+            }
+            ?>
         </span>
     </h2>
 
     <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-<?php echo $is_admin ? '5' : '3'; ?> gap-6 mb-12">
+    <div class="grid grid-cols-1 md:grid-cols-<?php echo $is_admin ? '5' : ($is_supplier ? '2' : '3'); ?> gap-6 mb-12">
         <?php foreach ($stats as $stat): ?>
             <?php
             $stmt = $pdo->query($stat['query']);
@@ -54,7 +69,7 @@ if ($is_admin) {
             <div class="bg-white rounded-xl shadow-lg p-6 animate__animated animate__fadeInUp">
                 <div class="flex items-center">
                     <div class="p-4 rounded-full bg-<?php echo $stat['color']; ?>-500 bg-opacity-75">
-                        <i class="<?php echo $stat['icon']; ?> fa-2x text-white"></i>
+                        <i class="<?php echo $stat['icon']; ?> fa- 2x text-white"></i>
                     </div>
                     <div class="ml-6">
                         <h4 class="text-3xl font-bold text-gray-700"><?php echo number_format($count); ?></h4>
@@ -66,8 +81,9 @@ if ($is_admin) {
     </div>
 
     <!-- Quick Actions -->
-    <div class="grid grid-cols-1 md:grid-cols-<?php echo $is_admin ? '3' : '2'; ?> gap-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-<?php echo $is_admin ? '3' : ($is_supplier ? '2' : '2'); ?> gap-6 mb-8">
         <!-- Cashier Actions -->
+        <?php if (!$is_supplier): ?>
         <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-xl font-bold">New Sale</h3>
@@ -89,6 +105,7 @@ if ($is_admin) {
                 New Prescription <i class="fas fa-arrow-right ml-2"></i>
             </a>
         </div>
+        <?php endif; ?>
 
         <?php if ($is_admin): ?>
         <!-- Admin-only Actions -->
@@ -98,8 +115,22 @@ if ($is_admin) {
                 <i class="fas fa-boxes text-3xl"></i>
             </div>
             <p class="mb-4">Manage inventory levels</p>
-            <a href="<?php echo $base_url; ?>inventory/check_stock.php" class="inline-block bg-white text-green-600 px-4 py-2 rounded-lg">
+            <a href="<?php echo $base_url; ?>inventory/inventory.php" class="inline-block bg-white text-green-600 px-4 py-2 rounded-lg">
                 Check Stock <i class="fas fa-arrow-right ml-2"></i>
+            </a>
+        </div>
+        <?php endif; ?>
+
+        <?php if ($is_supplier): ?>
+        <!-- Supplier Actions -->
+        <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold">Update Stock</h3>
+                <i class="fas fa-box text-3xl"></i>
+            </div>
+            <p class="mb-4">View and manage your supplied products</p>
+            <a href="<?php echo $base_url; ?>suppliers/suppliers.php" class="inline-block bg-white text-orange-600 px-4 py-2 rounded-lg">
+                Update Stock <i class="fas fa-arrow-right ml-2"></i>
             </a>
         </div>
         <?php endif; ?>
