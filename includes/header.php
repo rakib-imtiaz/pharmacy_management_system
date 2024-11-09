@@ -86,20 +86,19 @@ $is_supplier = ($_SESSION['role'] === 'Supplier');
                         <i class="fas fa-users-cog nav-icon text-white"></i>
                         <span>Users</span>
                     </a>
-                    
+                    <?php endif; ?>
+
+                    <?php if ($is_admin || $is_supplier): ?>
                     <a href="<?php echo $base_url; ?>invoices/invoices.php" class="nav-link text-white">
                         <i class="fas fa-file-invoice nav-icon text-white"></i>
                         <span>Invoices</span>
                     </a>
-                    <?php elseif ($is_supplier): ?>
+                    <?php endif; ?>
+
+                    <?php if ($is_supplier): ?>
                     <a href="<?php echo $base_url; ?>inventory/inventory.php" class="nav-link text-white">
                         <i class="fas fa-truck nav-icon text-white"></i>
                         <span>Update Stock</span>
-                    </a>
-                    
-                    <a href="<?php echo $base_url; ?>invoices/invoices.php" class="nav-link text-white">
-                        <i class="fas fa-file-invoice nav-icon text-white"></i>
-                        <span>Invoices</span>
                     </a>
                     <?php endif; ?>
                 </div>

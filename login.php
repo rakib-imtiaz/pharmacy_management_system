@@ -16,26 +16,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Validate input
         if (empty($username) || empty($password)) {
-            throw new Exception("Please enter both username and password");
+            throw new Exception("Please enter both username and password.");
         }
 
-        // Get user from database
-        $stmt = $pdo->prepare("SELECT user_id, username, password_hash, role FROM USER WHERE username = ? LIMIT 1");
-        $stmt->execute([$username]);
-        $user = $stmt->fetch();
-
-        if (!$user || $password !== $user['password_hash']) {
-            throw new Exception("Invalid username or password");
-        }
+            // Get user from database
+            $stmt = $pdo->prepare("SELECT user_id, username, password_hash, role FROM USER WHERE username = ? LIMIT 1");
+            $stmt->execute([$username]);
+            $user = $stmt->fetch();
+    
+            // Verify password and check if user exists
+            if (!$user || $password !== $user['password_hash']) {
+                throw new Exception("Invalid username or password.");
+            }
 
         // Set session variables
         $_SESSION['user_id'] = $user['user_id'];
         $_SESSION['username'] = $user['username'];
         $_SESSION['role'] = $user['role'];
 
+        // If the user is a supplier, retrieve the supplier_id
+        if ($user['role'] === 'Supplier') {
+            $stmt = $pdo->prepare("SELECT supplier_id FROM supplier WHERE user_id = ?");
+            $stmt->execute([$user['user_id']]);
+            $supplier = $stmt->fetch();
+
+            if ($supplier) {
+                $_SESSION['supplier_id'] = $supplier['supplier_id']; // Store supplier_id in session
+            } else {
+                throw new Exception("Supplier ID not found for this user.");
+            }
+        }
+
         // Update last login time
         $pdo->prepare("UPDATE USER SET last_login = CURRENT_TIMESTAMP WHERE user_id = ?")->execute([$user['user_id']]);
 
+        // Redirect to home page after login
         header("Location: index.php");
         exit;
 
@@ -57,9 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body class="bg-gray-100 min-h-screen flex items-center justify-center">
     <div class="max-w-md w-full mx-4">
-        <!-- Login Card -->
         <div class="bg-white rounded-xl shadow-lg p-8 animate__animated animate__fadeIn">
-            <!-- Logo and Title -->
             <div class="text-center mb-8">
                 <div class="flex justify-center mb-4">
                     <div class="bg-blue-500 p-3 rounded-full">
@@ -76,7 +89,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             <?php endif; ?>
 
-            <!-- Login Form -->
             <form method="POST" class="space-y-6">
                 <div>
                     <label for="username" class="block text-sm font-medium text-gray-700 mb-2">Username</label>
@@ -109,13 +121,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </button>
             </form>
 
-            <!-- Footer -->
             <div class="mt-6 text-center text-sm text-gray-600">
                 <p>Demo Credentials:</p>
                 <p>Username: admin | Password: password</p>
             </div>
 
-            <!-- Add this before the closing </div> of the login card, after the demo credentials -->
             <div class="mt-6 pt-6 border-t border-gray-200 text-center text-sm text-gray-600">
                 <p>Don't have an account? 
                     <a href="signup.php" class="text-blue-500 hover:text-blue-600 font-semibold">
