@@ -3,46 +3,73 @@ require_once '../includes/db_connect.php';
 session_start();
 include_once '../includes/header.php';
 
-// Add these lines at the top after require_once
+// Enable error reporting for debugging
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
-// Also, let's add session debugging
-if (!isset($_SESSION['user_id'])) {
-    die("Error: User not logged in");
+// Check if user is logged in
+if (!isset($_SESSION['user_id']) || !isset($_SESSION['role'])) {
+    $_SESSION['error'] = "Unauthorized access. Please log in as a doctor.";
+    header("Location: ../login.php");
+    exit;
 }
 
-// Fetch all customers for dropdown
+// Fetch user information from the session
+$user_id = $_SESSION['user_id'];
+$user_role = $_SESSION['role'];
+$is_doctor = ($user_role === 'Doctor');
+
+// Only doctors can create prescriptions
+if (!$is_doctor) {
+    $_SESSION['error'] = "Only doctors can create prescriptions.";
+    header("Location: ../prescriptions/prescriptions.php");
+    exit;
+}
+
+// Fetch the doctor associated with the logged-in user
+$doctor_stmt = $pdo->prepare("SELECT doctor_id, name FROM DOCTOR WHERE user_id = ?");
+$doctor_stmt->execute([$user_id]);
+$doctor = $doctor_stmt->fetch();
+
+// Check if the doctor profile exists
+if (!$doctor) {
+    $_SESSION['error'] = "Doctor profile not found. Please contact the administrator.";
+    header("Location: ../prescriptions/prescriptions.php");
+    exit;
+}
+
+// Fetch dropdown data for customers and drugs
 $customers = $pdo->query("SELECT customer_id, name FROM CUSTOMER ORDER BY name")->fetchAll();
-
-// Fetch all doctors for dropdown
-$doctors = $pdo->query("SELECT doctor_id, name FROM DOCTOR ORDER BY name")->fetchAll();
-
-// Fetch all drugs for dropdown
 $drugs = $pdo->query("SELECT drug_id, name, dosage_form FROM DRUG ORDER BY name")->fetchAll();
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Ensure that the doctor_id in the form is the same as the logged-in doctor’s ID
+    if ($_POST['doctor_id'] != $doctor['doctor_id']) {
+        $_SESSION['error'] = "You can only create prescriptions for yourself.";
+        header("Location: create_new_prescription.php");
+        exit;
+    }
+
     try {
         $pdo->beginTransaction();
 
-        // Insert prescription
+        // Insert prescription data
         $create_prescription = $pdo->prepare("
             INSERT INTO PRESCRIPTION 
-            (customer_id, doctor_id, prescription_date, status, user_id) 
-            VALUES (?, ?, ?, 'Pending', ?)
+            (customer_id, doctor_id, prescription_date, status) 
+            VALUES (?, ?, ?, 'Pending')
         ");
         
         $create_prescription->execute([
             $_POST['customer_id'],
-            $_POST['doctor_id'],
-            $_POST['prescription_date'],
-            $_SESSION['user_id'] // Assuming user_id is stored in session
+            $doctor['doctor_id'], // Use the logged-in doctor’s ID
+            $_POST['prescription_date']
         ]);
 
         $prescription_id = $pdo->lastInsertId();
 
-        // Insert prescription items
+        // Insert each prescription item
         $insert_item = $pdo->prepare("
             INSERT INTO PRESCRIPTION_ITEM 
             (prescription_id, drug_id, quantity, dosage_instructions) 
@@ -60,14 +87,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
+        // Commit transaction
         $pdo->commit();
         $_SESSION['success'] = "Prescription created successfully";
-        header("Location: view.php?id=" . $prescription_id);
+        
+        // Redirect to the prescription view page
+        header("Location: ../prescriptions/view_prescription.php?id=" . $prescription_id);
         exit;
 
     } catch (Exception $e) {
         $pdo->rollBack();
-        $_SESSION['error'] = $e->getMessage();
+        $_SESSION['error'] = "Error creating prescription: " . $e->getMessage();
     }
 }
 ?>
@@ -105,21 +135,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Doctor</label>
-                    <select name="doctor_id" required class="w-full rounded-lg border-gray-300">
-                        <option value="">Select Doctor</option>
-                        <?php foreach ($doctors as $doctor): ?>
-                            <option value="<?php echo $doctor['doctor_id']; ?>">
-                                <?php echo htmlspecialchars($doctor['name']); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
+                    <input type="hidden" name="doctor_id" value="<?php echo $doctor['doctor_id']; ?>">
+                    <input type="text" class="w-full rounded-lg border-gray-300 bg-gray-100" value="<?php echo htmlspecialchars($doctor['name']); ?>" readonly>
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Date</label>
-                    <input type="date" name="prescription_date" 
-                           value="<?php echo date('Y-m-d'); ?>"
-                           required class="w-full rounded-lg border-gray-300">
+                    <input type="date" name="prescription_date" value="<?php echo date('Y-m-d'); ?>" required class="w-full rounded-lg border-gray-300">
                 </div>
             </div>
         </div>
@@ -142,22 +164,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Quantity</label>
-                        <input type="number" name="items[0][quantity]" 
-                               required min="1" class="w-full rounded-lg border-gray-300">
+                        <input type="number" name="items[0][quantity]" required min="1" class="w-full rounded-lg border-gray-300">
                     </div>
                     <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-gray-700 mb-2">Instructions</label>
-                        <input type="text" name="items[0][dosage_instructions]" 
-                               required class="w-full rounded-lg border-gray-300"
+                        <input type="text" name="items[0][dosage_instructions]" required class="w-full rounded-lg border-gray-300"
                                placeholder="e.g., Take one tablet twice daily after meals">
                     </div>
                 </div>
             </div>
-            <button type="button" id="add-item" 
-                    class="mt-4 bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg">
+            <button type="button" id="add-item" class="mt-4 bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg">
                 Add Another Medication
             </button>
         </div>
+
         <div class="flex justify-end space-x-4">
             <a href="<?php echo $base_url; ?>/prescriptions/prescriptions.php" 
                class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg">
@@ -169,74 +189,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </form>
 </div>
-
-<script>
-document.getElementById('add-item').addEventListener('click', function() {
-    const container = document.getElementById('items-container');
-    const index = container.children.length;
-    const template = `
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4 item-row">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Medication</label>
-                <select name="items[${index}][drug_id]" required class="w-full rounded-lg border-gray-300">
-                    <option value="">Select Medication</option>
-                    <?php foreach ($drugs as $drug): ?>
-                        <option value="<?php echo $drug['drug_id']; ?>">
-                            <?php echo htmlspecialchars($drug['name'] . ' (' . $drug['dosage_form'] . ')'); ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Quantity</label>
-                <input type="number" name="items[${index}][quantity]" required min="1" 
-                       class="w-full rounded-lg border-gray-300">
-            </div>
-            <div class="md:col-span-2">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Instructions</label>
-                <input type="text" name="items[${index}][dosage_instructions]" required 
-                       class="w-full rounded-lg border-gray-300"
-                       placeholder="e.g., Take one tablet twice daily after meals">
-            </div>
-        </div>
-    `;
-    container.insertAdjacentHTML('beforeend', template);
-});
-
-document.querySelector('form').addEventListener('submit', function(e) {
-    e.preventDefault();
-    
-    // Validate basic information
-    const customer = document.querySelector('[name="customer_id"]').value;
-    const doctor = document.querySelector('[name="doctor_id"]').value;
-    const date = document.querySelector('[name="prescription_date"]').value;
-
-    if (!customer || !doctor || !date) {
-        alert('Please fill in all basic information fields');
-        return;
-    }
-
-    // Validate at least one medication
-    const medications = document.querySelectorAll('[name^="items"][name$="[drug_id]"]');
-    const quantities = document.querySelectorAll('[name^="items"][name$="[quantity]"]');
-    const instructions = document.querySelectorAll('[name^="items"][name$="[dosage_instructions]"]');
-
-    let hasValidItem = false;
-    for (let i = 0; i < medications.length; i++) {
-        if (medications[i].value && quantities[i].value && instructions[i].value) {
-            hasValidItem = true;
-            break;
-        }
-    }
-
-    if (!hasValidItem) {
-        alert('Please add at least one medication with quantity and instructions');
-        return;
-    }
-
-    // If validation passes, submit the form
-    this.submit();
-});
-</script>
-
-<?php include_once '../includes/footer.php'; ?> 
+<?php include_once '../includes/footer.php'; ?>

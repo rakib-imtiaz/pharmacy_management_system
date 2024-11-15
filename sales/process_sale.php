@@ -44,17 +44,23 @@ try {
         $check_stock = $pdo->prepare("
             SELECT quantity, expiry_date 
             FROM STOCK_ITEM 
-            WHERE stock_item_id = ? AND quantity >= ?
+            WHERE stock_item_id = ?
         ");
-        $check_stock->execute([$item['stock_item_id'], $item['quantity']]);
+        $check_stock->execute([$item['stock_item_id']]);
         $stock = $check_stock->fetch();
 
         if (!$stock) {
-            throw new Exception("Insufficient stock for one or more items");
+            throw new Exception("Item with ID " . $item['stock_item_id'] . " not found in stock.");
         }
 
+        // Check if requested quantity is available
+        if ($stock['quantity'] < $item['quantity']) {
+            throw new Exception("Insufficient stock for item ID " . $item['stock_item_id'] . ": Requested " . $item['quantity'] . ", Available " . $stock['quantity']);
+        }
+
+        // Check if item has expired
         if (strtotime($stock['expiry_date']) < strtotime('today')) {
-            throw new Exception("One or more items have expired");
+            throw new Exception("Item with ID " . $item['stock_item_id'] . " has expired");
         }
 
         $total_amount += $item['quantity'] * $item['unit_price'];
@@ -133,23 +139,3 @@ try {
     exit;
 }
 ?>
-
-<?php
-// Optional: Add a simple HTML response for direct API calls
-if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
-    strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest'
-) {
-    header('Content-Type: application/json');
-    if (isset($_SESSION['error'])) {
-        echo json_encode(['status' => 'error', 'message' => $_SESSION['error']]);
-        unset($_SESSION['error']);
-    } else {
-        echo json_encode([
-            'status' => 'success',
-            'message' => 'Sale processed successfully',
-            'sale_id' => $sale_id
-        ]);
-    }
-    exit;
-}
-?> 

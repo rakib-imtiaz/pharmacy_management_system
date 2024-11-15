@@ -19,10 +19,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         // Insert into DRUG table
         $drug_stmt = $pdo->prepare("
-            INSERT INTO DRUG (name, category_id, dosage_form, description)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO DRUG (name, category_id, dosage_form, description, supplier_id)
+            VALUES (?, ?, ?, ?, ?)
         ");
-        $drug_stmt->execute([$name, $category_id, $dosage_form, $description]);
+        $drug_stmt->execute([$name, $category_id, $dosage_form, $description, $supplier_id]);
         $drug_id = $pdo->lastInsertId();
 
         // Insert into STOCK_ITEM table
@@ -56,6 +56,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 }
 
+// Retrieve user role and supplier information if applicable
+$user_role = $_SESSION['role'];
+$user_id = $_SESSION['user_id'];
+
+// If user is a supplier, get their supplier_id and name
+$supplier_condition = '';
+if ($user_role === 'Supplier') {
+    $supplier_stmt = $pdo->prepare("SELECT supplier_id, name FROM SUPPLIER WHERE user_id = ?");
+    $supplier_stmt->execute([$user_id]);
+    $supplier = $supplier_stmt->fetch();
+    $supplier_id = $supplier['supplier_id'];
+    $supplier_name = $supplier['name'];
+}
+
 require_once '../includes/header.php';
 ?>
 
@@ -69,6 +83,13 @@ require_once '../includes/header.php';
         </div>
 
         <div class="bg-white shadow-md rounded-lg p-6">
+            <!-- Display success or error messages -->
+            <?php if (isset($_SESSION['error'])): ?>
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
+                    <?php echo $_SESSION['error']; unset($_SESSION['error']); ?>
+                </div>
+            <?php endif; ?>
+
             <form action="" method="POST">
                 <div class="mb-4">
                     <label for="name" class="block text-gray-700 text-sm font-bold mb-2">Name *</label>
@@ -113,20 +134,28 @@ require_once '../includes/header.php';
 
                 <div class="mb-4">
                     <label for="supplier_id" class="block text-gray-700 text-sm font-bold mb-2">Supplier *</label>
-                    <select name="supplier_id" id="supplier_id" required
-                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
-                        <option value="">Select Supplier</option>
-                        <?php
-                        $suppliers = $pdo->query("SELECT * FROM SUPPLIER ORDER BY name");
-                        while ($supplier = $suppliers->fetch()) {
-                            echo "<option value='{$supplier['supplier_id']}'>{$supplier['name']}</option>";
-                        }
-                        ?>
-                    </select>
+                    <?php if ($user_role === 'Supplier'): ?>
+                        <!-- Show supplier name for logged-in suppliers -->
+                        <input type="text" value="<?php echo htmlspecialchars($supplier_name); ?>" disabled
+                               class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                        <input type="hidden" name="supplier_id" value="<?php echo $supplier_id; ?>">
+                    <?php else: ?>
+                        <!-- Dropdown for admins to select supplier -->
+                        <select name="supplier_id" id="supplier_id" required
+                                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                            <option value="">Select Supplier</option>
+                            <?php
+                            $suppliers = $pdo->query("SELECT * FROM SUPPLIER ORDER BY name");
+                            while ($supplier = $suppliers->fetch()) {
+                                echo "<option value='{$supplier['supplier_id']}'>{$supplier['name']}</option>";
+                            }
+                            ?>
+                        </select>
+                    <?php endif; ?>
                 </div>
 
                 <div class="mb-4">
-                    <label for="unit_price" class="block text-gray-700 text-sm font-bold mb-2">Unit Price (₱) *</label>
+                    <label for="unit_price" class="block text-gray-700 text-sm font-bold mb-2">Unit Price (৳) *</label>
                     <input type="number" name="unit_price" id="unit_price" step="0.01" required
                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
                 </div>
@@ -154,4 +183,4 @@ require_once '../includes/header.php';
     </div>
 </div>
 
-<?php require_once '../includes/footer.php'; ?> 
+<?php require_once '../includes/footer.php'; ?>

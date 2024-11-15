@@ -66,14 +66,18 @@ $customers = $pdo->query($query)->fetchAll();
                             $<?php echo number_format($customer['total_spent'], 2); ?>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <button onclick="openEditCustomerModal(<?php echo $customer['customer_id']; ?>)" 
-                                    class="text-blue-600 hover:text-blue-900 mr-3">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button onclick="openCustomerHistoryModal(<?php echo $customer['customer_id']; ?>)" 
-                                    class="text-green-600 hover:text-green-900">
-                                <i class="fas fa-history"></i>
-                            </button>
+                            <a href="edit_customer.php?id=<?php echo $customer['customer_id']; ?>" 
+                               class="text-blue-600 hover:text-blue-900 mr-3">
+                                <i class="fas fa-edit"></i> 
+                            </a>
+                            <a href="customer_history.php?id=<?php echo $customer['customer_id']; ?>" 
+                               class="text-green-600 hover:text-green-900 mr-3">
+                                <i class="fas fa-history"></i> 
+                            </a>
+                            <a href="confirm_delete.php?id=<?php echo $customer['customer_id']; ?>" 
+                               class="text-red-600 hover:text-red-900">
+                                <i class="fas fa-trash"></i> 
+                            </a>
                         </td>
                     </tr>
                 <?php endforeach; ?>
@@ -111,34 +115,6 @@ $customers = $pdo->query($query)->fetchAll();
             </form>
         </div>
     </div>
-</div>
+</div> 
 
-<script>
-function openAddCustomerModal() {
-    document.getElementById('addCustomerModal').classList.remove('hidden');
-}
-
-function closeAddCustomerModal() {
-    document.getElementById('addCustomerModal').classList.add('hidden');
-}
-
-function openEditCustomerModal(customerId) {
-    // Implement edit customer functionality
-    window.location.href = 'edit_customer.php?id=' + customerId;
-}
-
-function openCustomerHistoryModal(customerId) {
-    // Implement customer history view
-    window.location.href = 'customer_history.php?id=' + customerId;
-}
-
-// Close modal when clicking outside
-window.onclick = function(event) {
-    const modal = document.getElementById('addCustomerModal');
-    if (event.target == modal) {
-        closeAddCustomerModal();
-    }
-}
-</script>
-
-<?php include_once '../includes/footer.php'; ?>
+<?php include_once '../includes/footer.php'; ?> 

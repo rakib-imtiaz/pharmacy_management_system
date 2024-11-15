@@ -11,6 +11,7 @@ if (!isset($_SESSION['user_id'])) {
 
 $is_admin = ($_SESSION['role'] === 'Administrator');
 $is_supplier = ($_SESSION['role'] === 'Supplier');
+$is_doctor = ($_SESSION['role'] === 'Doctor');
 ?>
 
 <!DOCTYPE html>
@@ -48,58 +49,66 @@ $is_supplier = ($_SESSION['role'] === 'Supplier');
                         <i class="fas fa-home nav-icon text-white"></i>
                         <span>Dashboard</span>
                     </a>
-                    
-                    <?php if (!$is_supplier): // Exclude sales, prescriptions, and customers for suppliers ?>
-                    <a href="<?php echo $base_url; ?>sales/sales.php" class="nav-link text-white">
-                        <i class="fas fa-cash-register nav-icon text-white"></i>
-                        <span>Sales</span>
-                    </a>
-                    
-                    <a href="<?php echo $base_url; ?>prescriptions/prescriptions.php" class="nav-link text-white">
-                        <i class="fas fa-file-prescription nav-icon text-white"></i>
-                        <span>Prescriptions</span>
-                    </a>
-                    
-                    <a href="<?php echo $base_url; ?>customers/customers.php" class="nav-link text-white">
-                        <i class="fas fa-users nav-icon text-white"></i>
-                        <span>Customers</span>
-                    </a>
+
+                    <?php if ($is_doctor): ?>
+                        <!-- Doctor-only accessible links -->
+                        <a href="<?php echo $base_url; ?>prescriptions/prescriptions.php" class="nav-link text-white">
+                            <i class="fas fa-file-prescription nav-icon text-white"></i>
+                            <span>Prescriptions</span>
+                        </a>
+                    <?php endif; ?>
+
+                    <?php if (!$is_supplier && !$is_doctor): // Exclude sales, prescriptions, and customers for suppliers and doctors ?>
+                        <a href="<?php echo $base_url; ?>sales/sales.php" class="nav-link text-white">
+                            <i class="fas fa-cash-register nav-icon text-white"></i>
+                            <span>Sales</span>
+                        </a>
+
+                        <a href="<?php echo $base_url; ?>prescriptions/prescriptions.php" class="nav-link text-white">
+                            <i class="fas fa-file-prescription nav-icon text-white"></i>
+                            <span>Prescriptions</span>
+                        </a>
+
+                        <a href="<?php echo $base_url; ?>customers/customers.php" class="nav-link text-white">
+                            <i class="fas fa-users nav-icon text-white"></i>
+                            <span>Customers</span>
+                        </a>
                     <?php endif; ?>
 
                     <?php if ($is_admin): ?>
-                    <a href="<?php echo $base_url; ?>inventory/inventory.php" class="nav-link text-white">
-                        <i class="fas fa-boxes nav-icon text-white"></i>
-                        <span>Inventory</span>
-                    </a>
-                    
-                    <a href="<?php echo $base_url; ?>suppliers/suppliers.php" class="nav-link text-white">
-                        <i class="fas fa-truck nav-icon text-white"></i>
-                        <span>Suppliers</span>
-                    </a>
-                    
-                    <a href="<?php echo $base_url; ?>doctors/doctors.php" class="nav-link text-white">
-                        <i class="fas fa-user-md nav-icon text-white"></i>
-                        <span>Doctors</span>
-                    </a>
-                    
-                    <a href="<?php echo $base_url; ?>users/users.php" class="nav-link text-white">
-                        <i class="fas fa-users-cog nav-icon text-white"></i>
-                        <span>Users</span>
-                    </a>
+                        <a href="<?php echo $base_url; ?>inventory/inventory.php" class="nav-link text-white">
+                            <i class="fas fa-boxes nav-icon text-white"></i>
+                            <span>Inventory</span>
+                        </a>
+
+                        <a href="<?php echo $base_url; ?>suppliers/suppliers.php" class="nav-link text-white">
+                            <i class="fas fa-truck nav-icon text-white"></i>
+                            <span>Suppliers</span>
+                        </a>
+
+                        <a href="<?php echo $base_url; ?>doctors/doctors.php" class="nav-link text-white">
+                            <i class="fas fa-user-md nav-icon text-white"></i>
+                            <span>Doctors</span>
+                        </a>
+
+                        <a href="<?php echo $base_url; ?>users/users.php" class="nav-link text-white">
+                            <i class="fas fa-users-cog nav-icon text-white"></i>
+                            <span>Users</span>
+                        </a>
                     <?php endif; ?>
 
                     <?php if ($is_admin || $is_supplier): ?>
-                    <a href="<?php echo $base_url; ?>invoices/invoices.php" class="nav-link text-white">
-                        <i class="fas fa-file-invoice nav-icon text-white"></i>
-                        <span>Invoices</span>
-                    </a>
+                        <a href="<?php echo $base_url; ?>invoices/invoices.php" class="nav-link text-white">
+                            <i class="fas fa-file-invoice nav-icon text-white"></i>
+                            <span>Invoices</span>
+                        </a>
                     <?php endif; ?>
 
                     <?php if ($is_supplier): ?>
-                    <a href="<?php echo $base_url; ?>inventory/inventory.php" class="nav-link text-white">
-                        <i class="fas fa-truck nav-icon text-white"></i>
-                        <span>Update Stock</span>
-                    </a>
+                        <a href="<?php echo $base_url; ?>inventory/inventory.php" class="nav-link text-white">
+                            <i class="fas fa-truck nav-icon text-white"></i>
+                            <span>Update Stock</span>
+                        </a>
                     <?php endif; ?>
                 </div>
 
