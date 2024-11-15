@@ -25,6 +25,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$user_id, $supplier_name]);
         }
 
+        // If the role is Doctor, insert an entry into the doctor table
+        if ($role === 'Doctor') {
+            $doctor_name = $_POST['doctor_name'] ?? 'Default Doctor Name'; // Adjust input as needed
+            $stmt = $pdo->prepare("INSERT INTO doctor (user_id, name) VALUES (?, ?)");
+            $stmt->execute([$user_id, $doctor_name]);
+        }
+
         // Commit transaction
         $pdo->commit();
 
@@ -80,6 +87,7 @@ require_once '../includes/header.php';
                         <option value="Administrator">Administrator</option>
                         <option value="Cashier">Cashier</option>
                         <option value="Supplier">Supplier</option>
+                        <option value="Doctor">Doctor</option>
                     </select>
                 </div>
 
@@ -88,7 +96,15 @@ require_once '../includes/header.php';
                     <label for="supplier_name" class="block text-gray-700 text-sm font-bold mb-2">Supplier Name</label>
                     <input type="text" name="supplier_name" id="supplier_name"
                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                           placeholder="Enter supplier name if role is Supplier">
+                           placeholder="Enter supplier name ">
+                </div>
+
+                <!-- Additional input for Doctor name if role is Doctor -->
+                <div class="mb-4" id="doctor_name_field" style="display: none;">
+                    <label for="doctor_name" class="block text-gray-700 text-sm font-bold mb-2">Doctor Name</label>
+                    <input type="text" name="doctor_name" id="doctor_name"
+                           class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                           placeholder="Enter Doctor name ">
                 </div>
 
                 <div class="flex items-center justify-end">
@@ -105,10 +121,11 @@ require_once '../includes/header.php';
 </div>
 
 <script>
-    // Show/hide Supplier Name field based on role selection
+    // Show/hide Supplier and Doctor Name fields based on role selection
     document.getElementById('role').addEventListener('change', function() {
         document.getElementById('supplier_name_field').style.display = this.value === 'Supplier' ? 'block' : 'none';
+        document.getElementById('doctor_name_field').style.display = this.value === 'Doctor' ? 'block' : 'none';
     });
 </script>
 
-<?php require_once '../includes/footer.php'; ?>  
+<?php require_once '../includes/footer.php'; ?>

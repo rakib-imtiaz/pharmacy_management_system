@@ -1,6 +1,25 @@
 <?php
+ob_start();
+
 require_once '../includes/db_connect.php';
 session_start();
+include_once '../includes/header.php';
+
+// Enable error reporting for debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+// Check if user is logged in
+if (!isset($_SESSION['user_id']) || !isset($_SESSION['role'])) {
+    $_SESSION['error'] = "Unauthorized access. Please log in.";
+    header("Location: ../login.php");
+    exit;
+}
+
+$user_id = $_SESSION['user_id'];
+$role = $_SESSION['role'];
+$is_admin = ($role === 'Administrator');
+$is_supplier = ($role === 'Supplier');
 
 // Get drug details
 if (isset($_GET['id'])) {
@@ -31,26 +50,16 @@ if (isset($_GET['id'])) {
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
-        // Validate input
-        $required_fields = ['name', 'category_id', 'dosage_form', 'description', 'supplier_id', 'unit_price', 'quantity', 'expiry_date'];
+        $pdo->beginTransaction();
         $errors = [];
-        
-        foreach ($required_fields as $field) {
-            if (empty($_POST[$field])) {
-                $errors[] = ucfirst(str_replace('_', ' ', $field)) . ' is required';
-            }
-        }
 
-        if (empty($errors)) {
-            $pdo->beginTransaction();
-
-            // Update DRUG table
+        if ($is_admin) {
+            // Admin can update all fields including quantity
             $drug_stmt = $pdo->prepare("
                 UPDATE DRUG 
-                SET name = ?, category_id = ?, dosage_form = ?, description = ?
+                SET name = ?, category_id = ?, dosage_form = ?, description = ? 
                 WHERE drug_id = ?
             ");
-
             $drug_stmt->execute([
                 $_POST['name'],
                 $_POST['category_id'],
@@ -59,35 +68,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $drug_id
             ]);
 
-            // Update STOCK_ITEM table
+            // Update stock quantity and other fields
             $stock_stmt = $pdo->prepare("
                 UPDATE STOCK_ITEM 
-                SET quantity = ?, expiry_date = ?, unit_price = ?, supplier_id = ?
+                SET quantity = ?, expiry_date = ?, unit_price = ? 
                 WHERE stock_item_id = ?
             ");
-
+            $stock_stmt->execute([
+                $_POST['quantity'],  // New quantity
+                $_POST['expiry_date'], // New expiry date
+                $_POST['unit_price'], // New unit price
+                $_POST['stock_item_id'] // Stock item ID to identify the stock row
+            ]);
+        } elseif ($is_supplier) {
+            // Supplier can only update quantity and expiry date
+            $stock_stmt = $pdo->prepare("
+                UPDATE STOCK_ITEM 
+                SET quantity = ?, expiry_date = ? 
+                WHERE stock_item_id = ? AND supplier_id = ?
+            ");
             $stock_stmt->execute([
                 $_POST['quantity'],
                 $_POST['expiry_date'],
-                $_POST['unit_price'],
-                $_POST['supplier_id'],
-                $_POST['stock_item_id']
+                $_POST['stock_item_id'],
+                $user_id // Ensure supplier can only update their own stock
             ]);
-
-            // Log the update
-            $audit_stmt = $pdo->prepare("
-                INSERT INTO AUDIT_LOG (user_id, timestamp, action, table_affected, record_id)
-                VALUES (?, NOW(), 'UPDATE', 'DRUG', ?)
-            ");
-
-            $audit_stmt->execute([$_SESSION['user_id'], $drug_id]);
-
-            $pdo->commit();
-
-            $_SESSION['success_message'] = "Drug updated successfully";
-            header('Location: inventory.php');
-            exit;
         }
+
+        // Log the update
+        $audit_stmt = $pdo->prepare("
+            INSERT INTO AUDIT_LOG (user_id, timestamp, action, table_affected, record_id)
+            VALUES (?, NOW(), 'UPDATE', 'DRUG', ?)
+        ");
+        $audit_stmt->execute([$user_id, $drug_id]);
+
+        $pdo->commit();
+
+        $_SESSION['success_message'] = "Drug updated successfully";
+        header('Location: inventory.php');
+        exit;
     } catch (PDOException $e) {
         $pdo->rollBack();
         $errors[] = "Database error: " . $e->getMessage();
@@ -137,7 +156,7 @@ include_once '../includes/header.php';
                     <!-- Drug Name -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Drug Name *</label>
-                        <input type="text" name="name" required
+                        <input type="text" name="name" <?php echo $is_admin ? '' : 'readonly'; ?>
                                class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                value="<?php echo htmlspecialchars($drug['name']); ?>">
                     </div>
@@ -145,7 +164,7 @@ include_once '../includes/header.php';
                     <!-- Category -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Category *</label>
-                        <select name="category_id" required
+                        <select name="category_id" <?php echo $is_admin ? '' : 'disabled'; ?>
                                 class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             <?php
                             $categories = $pdo->query("SELECT * FROM DRUG_CATEGORY ORDER BY name");
@@ -160,7 +179,7 @@ include_once '../includes/header.php';
                     <!-- Dosage Form -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Dosage Form *</label>
-                        <select name="dosage_form" required
+                        <select name="dosage_form" <?php echo $is_admin ? '' : 'disabled'; ?>
                                 class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             <?php
                             $dosage_forms = ['Tablet', 'Capsule', 'Syrup', 'Injection', 'Cream', 'Ointment'];
@@ -175,7 +194,7 @@ include_once '../includes/header.php';
                     <!-- Description -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Description *</label>
-                        <textarea name="description" required
+                        <textarea name="description" <?php echo $is_admin ? '' : 'readonly'; ?>
                                   class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                   rows="3"><?php echo htmlspecialchars($drug['description']); ?></textarea>
                     </div>
@@ -183,10 +202,10 @@ include_once '../includes/header.php';
 
                 <!-- Stock Information -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Supplier -->
+                    <!-- Supplier (Read-only for both Admin and Supplier) -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Supplier *</label>
-                        <select name="supplier_id" required
+                        <select name="supplier_id" disabled
                                 class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             <?php
                             $suppliers = $pdo->query("SELECT * FROM SUPPLIER ORDER BY name");
@@ -196,30 +215,31 @@ include_once '../includes/header.php';
                             }
                             ?>
                         </select>
+                        <input type="hidden" name="supplier_id" value="<?php echo htmlspecialchars($drug['supplier_id']); ?>">
                     </div>
 
-                    <!-- Unit Price -->
+                    <!-- Unit Price (Read-only for Supplier, editable for Admin) -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Unit Price (₱) *</label>
-                        <input type="number" name="unit_price" step="0.01" required
+                        <input type="number" name="unit_price" step="0.01"
                                class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                               value="<?php echo htmlspecialchars($drug['unit_price']); ?>">
+                               value="<?php echo htmlspecialchars($drug['unit_price']); ?>" <?php echo $is_supplier ? 'readonly' : ''; ?>>
                     </div>
 
-                    <!-- Quantity -->
+                    <!-- Quantity (Editable by both Admin and Supplier) -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Quantity *</label>
                         <input type="number" name="quantity" required min="0"
                                class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                               value="<?php echo htmlspecialchars($drug['quantity']); ?>">
+                               value="<?php echo htmlspecialchars($drug['quantity']); ?>" <?php echo $is_supplier ? '' : 'readonly'; ?>>
                     </div>
 
-                    <!-- Expiry Date -->
+                    <!-- Expiry Date (Editable by both Admin and Supplier) -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Expiry Date *</label>
                         <input type="date" name="expiry_date" required
                                class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                               value="<?php echo htmlspecialchars($drug['expiry_date']); ?>">
+                               value="<?php echo htmlspecialchars($drug['expiry_date']); ?>" <?php echo $is_supplier ? '' : 'readonly'; ?>>
                     </div>
                 </div>
 
@@ -240,33 +260,6 @@ include_once '../includes/header.php';
 </div>
 
 <script>
-// Form validation
-document.querySelector('form').addEventListener('submit', function(e) {
-    const requiredFields = ['name', 'category_id', 'dosage_form', 'description', 'supplier_id', 'unit_price', 'quantity', 'expiry_date'];
-    const errors = [];
-
-    requiredFields.forEach(field => {
-        const input = this.elements[field];
-        if (!input.value.trim()) {
-            errors.push(`${field.replace('_', ' ')} is required`);
-            input.classList.add('border-red-500');
-        } else {
-            input.classList.remove('border-red-500');
-        }
-    });
-
-    if (errors.length > 0) {
-        e.preventDefault();
-        Swal.fire({
-            title: 'Error!',
-            html: errors.join('<br>'),
-            icon: 'error',
-            confirmButtonText: 'Ok'
-        });
-    }
-});
-
-// Prevent negative numbers in quantity and price fields
 document.querySelectorAll('input[type="number"]').forEach(input => {
     input.addEventListener('input', function() {
         if (this.value < 0) {

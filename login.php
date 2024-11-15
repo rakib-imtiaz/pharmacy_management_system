@@ -19,15 +19,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new Exception("Please enter both username and password.");
         }
 
-            // Get user from database
-            $stmt = $pdo->prepare("SELECT user_id, username, password_hash, role FROM USER WHERE username = ? LIMIT 1");
-            $stmt->execute([$username]);
-            $user = $stmt->fetch();
-    
-            // Verify password and check if user exists
-            if (!$user || $password !== $user['password_hash']) {
-                throw new Exception("Invalid username or password.");
-            }
+        // Get user from database
+        $stmt = $pdo->prepare("SELECT user_id, username, password_hash, role FROM USER WHERE username = ? LIMIT 1");
+        $stmt->execute([$username]);
+        $user = $stmt->fetch();
+
+        // Verify password and check if user exists
+        if (!$user || !password_verify($password, $user['password_hash'])) {
+            throw new Exception("Invalid username or password.");
+        }
 
         // Set session variables
         $_SESSION['user_id'] = $user['user_id'];
@@ -59,6 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">

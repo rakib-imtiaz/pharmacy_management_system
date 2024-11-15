@@ -1,18 +1,21 @@
 <?php
 require_once '../includes/db_connect.php';
 session_start();
+
+// Check if the user role is set in the session
+$is_admin = isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin';
+$supplier_id = $_SESSION['supplier_id'] ?? null; // For suppliers, store their supplier ID
 ?>
+
 <!DOCTYPE html>
 <html>
 <head>
-    <!-- Add these lines in the head section -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 
 <?php include_once '../includes/header.php'; ?>
 
 <?php
-// Add this after your header includes
 if (isset($_SESSION['success_message'])) {
     $message = $_SESSION['success_message'];
     unset($_SESSION['success_message']);
@@ -39,7 +42,6 @@ if (isset($_SESSION['success_message'])) {
     </div>
 
     <div class="container mx-auto px-6 py-8 relative z-10">
-        <!-- Page Header -->
         <div class="flex justify-between items-center mb-8">
             <h2 class="text-3xl font-bold text-gray-800 animate__animated animate__fadeIn">
                 Inventory Management
@@ -50,18 +52,18 @@ if (isset($_SESSION['success_message'])) {
             </button>
         </div>
 
-        <!-- Inventory Stats -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <?php
+            // Adjust total drugs query for admin vs. supplier
             $stats = [
                 [
-                    'query' => "SELECT COUNT(*) FROM DRUG",
+                    'query' => $is_admin ? "SELECT COUNT(*) FROM DRUG" : "SELECT COUNT(*) FROM DRUG WHERE supplier_id = $supplier_id",
                     'title' => 'Total Drugs',
                     'icon' => 'fas fa-pills',
                     'color' => 'blue'
                 ],
                 [
-                    'query' => "SELECT COUNT(*) FROM STOCK_ITEM WHERE quantity < 100",
+                    'query' => $is_admin ? "SELECT COUNT(*) FROM STOCK_ITEM WHERE quantity < 100" : "SELECT COUNT(*) FROM STOCK_ITEM WHERE quantity < 100 AND supplier_id = $supplier_id",
                     'title' => 'Low Stock Items',
                     'icon' => 'fas fa-exclamation-triangle',
                     'color' => 'yellow'
@@ -73,7 +75,7 @@ if (isset($_SESSION['success_message'])) {
                     'color' => 'green'
                 ],
                 [
-                    'query' => "SELECT COUNT(*) FROM STOCK_ITEM WHERE quantity = 0",
+                    'query' => $is_admin ? "SELECT COUNT(*) FROM STOCK_ITEM WHERE quantity = 0" : "SELECT COUNT(*) FROM STOCK_ITEM WHERE quantity = 0 AND supplier_id = $supplier_id",
                     'title' => 'Out of Stock',
                     'icon' => 'fas fa-box-open',
                     'color' => 'red'
@@ -98,7 +100,6 @@ if (isset($_SESSION['success_message'])) {
             <?php } ?>
         </div>
 
-        <!-- Search and Filter Section -->
         <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
             <div class="flex flex-col md:flex-row gap-4">
                 <div class="flex-1">
@@ -125,12 +126,12 @@ if (isset($_SESSION['success_message'])) {
             </div>
         </div>
 
-        <!-- Inventory Table -->
         <div class="bg-white rounded-xl shadow-lg overflow-hidden">
             <table class="min-w-full">
                 <thead class="bg-gray-50">
                     <tr>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Drug Name</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Supplier</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock Level</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
@@ -139,11 +140,15 @@ if (isset($_SESSION['success_message'])) {
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     <?php
-                    $query = "SELECT d.*, dc.name as category_name, si.quantity 
+                    // Adjust query for admin vs supplier
+                    $query = "SELECT d.*, dc.name as category_name, si.quantity, s.name as supplier_name 
                              FROM DRUG d 
                              LEFT JOIN DRUG_CATEGORY dc ON d.category_id = dc.category_id 
                              LEFT JOIN STOCK_ITEM si ON d.drug_id = si.drug_id 
-                             ORDER BY d.name";
+                             LEFT JOIN SUPPLIER s ON d.supplier_id = s.supplier_id ";
+                    $query .= $is_admin ? "" : "WHERE d.supplier_id = $supplier_id ";
+                    $query .= "ORDER BY d.name";
+                    
                     $drugs = $pdo->query($query);
                     
                     while ($drug = $drugs->fetch()) {
@@ -167,6 +172,9 @@ if (isset($_SESSION['success_message'])) {
                                 <div class="text-sm text-gray-500"><?php echo htmlspecialchars($drug['dosage_form']); ?></div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900"><?php echo htmlspecialchars($drug['supplier_name']); ?></div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="text-sm text-gray-900"><?php echo htmlspecialchars($drug['category_name']); ?></div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
@@ -178,12 +186,16 @@ if (isset($_SESSION['success_message'])) {
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <button class="text-blue-600 hover:text-blue-900 mr-3" onclick="window.location.href='edit_drug.php?id=<?php echo $drug['drug_id']; ?>'">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="text-red-600 hover:text-red-900" onclick="deleteDrug(<?php echo $drug['drug_id']; ?>)">
-                                    <i class="fas fa-trash"></i>
-                                </button>
+                                <?php if ($is_admin || $drug['supplier_id'] == $supplier_id) { ?>
+                                    <button class="text-blue-600 hover:text-blue-900 mr-3" onclick="window.location.href='edit_drug.php?id=<?php echo $drug['drug_id']; ?>'">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                <?php } ?>
+                                <?php if ($is_admin) { ?>
+                                    <button class="text-red-600 hover:text-red-900" onclick="deleteDrug(<?php echo $drug['drug_id']; ?>)">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                <?php } ?>
                             </td>
                         </tr>
                     <?php } ?>
@@ -207,7 +219,6 @@ function deleteDrug(drugId) {
         confirmButtonText: 'Yes, delete it!'
     }).then((result) => {
         if (result.isConfirmed) {
-            // Show loading state
             Swal.fire({
                 title: 'Deleting...',
                 text: 'Please wait while we process your request',
@@ -218,7 +229,6 @@ function deleteDrug(drugId) {
                 }
             });
 
-            // Send delete request
             fetch('delete_drug.php', {
                 method: 'POST',
                 headers: {
@@ -255,14 +265,13 @@ function deleteDrug(drugId) {
     });
 }
 
-// Your existing filter functionality
 document.getElementById('search').addEventListener('input', filterTable);
 document.getElementById('category').addEventListener('change', filterTable);
 document.getElementById('stock').addEventListener('change', filterTable);
 
 function filterTable() {
-    // Add your filter logic here
+    // Filtering logic
 }
 </script>
 
-<?php include_once 'includes/footer.php'; ?> 
+<?php include_once '../includes/footer.php'; ?>
