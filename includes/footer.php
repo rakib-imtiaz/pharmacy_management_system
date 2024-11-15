@@ -26,7 +26,7 @@
                     <ul class="space-y-2 text-sm">
                         <li class="flex items-center space-x-2">
                             <i class="fas fa-phone"></i>
-                            <span>+1 234 567 890</span>
+                            <span>+9801837292</span>
                         </li>
                         <li class="flex items-center space-x-2">
                             <i class="fas fa-envelope"></i>

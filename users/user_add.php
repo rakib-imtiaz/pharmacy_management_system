@@ -1,19 +1,41 @@
 <?php
 require_once '../includes/db_connect.php';
+session_start();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = $_POST['username'];
-    $password = $_POST['password'];
+    $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
     $role = $_POST['role'];
 
     try {
+        // Start transaction
+        $pdo->beginTransaction();
+
+        // Insert the new user into the USER table
         $stmt = $pdo->prepare("INSERT INTO USER (username, password_hash, role) VALUES (?, ?, ?)");
         $stmt->execute([$username, $password, $role]);
         
+        // Get the generated user_id
+        $user_id = $pdo->lastInsertId();
+
+        // If the role is Supplier, insert an entry into the supplier table
+        if ($role === 'Supplier') {
+            $supplier_name = $_POST['supplier_name'] ?? 'Default Supplier Name'; // Adjust input as needed
+            $stmt = $pdo->prepare("INSERT INTO supplier (user_id, name) VALUES (?, ?)");
+            $stmt->execute([$user_id, $supplier_name]);
+        }
+
+        // Commit transaction
+        $pdo->commit();
+
+        // Set success message and redirect
         $_SESSION['success'] = "User added successfully";
         header("Location: " . $base_url . "users/users.php");
         exit();
+
     } catch (PDOException $e) {
+        // Rollback transaction on error
+        $pdo->rollBack();
         $_SESSION['error'] = "Error adding user: " . $e->getMessage();
     }
 }
@@ -57,8 +79,16 @@ require_once '../includes/header.php';
                             class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
                         <option value="Administrator">Administrator</option>
                         <option value="Cashier">Cashier</option>
-                        <option value="Pharmacist">Pharmacist</option>
+                        <option value="Supplier">Supplier</option>
                     </select>
+                </div>
+
+                <!-- Additional input for Supplier name if role is Supplier -->
+                <div class="mb-4" id="supplier_name_field" style="display: none;">
+                    <label for="supplier_name" class="block text-gray-700 text-sm font-bold mb-2">Supplier Name</label>
+                    <input type="text" name="supplier_name" id="supplier_name"
+                           class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                           placeholder="Enter supplier name if role is Supplier">
                 </div>
 
                 <div class="flex items-center justify-end">
@@ -74,4 +104,11 @@ require_once '../includes/header.php';
     </div>
 </div>
 
-<?php require_once '../includes/footer.php'; ?>
+<script>
+    // Show/hide Supplier Name field based on role selection
+    document.getElementById('role').addEventListener('change', function() {
+        document.getElementById('supplier_name_field').style.display = this.value === 'Supplier' ? 'block' : 'none';
+    });
+</script>
+
+<?php require_once '../includes/footer.php'; ?>  
