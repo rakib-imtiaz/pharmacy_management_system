@@ -6,12 +6,12 @@ include_once 'includes/header.php';
 // Fetch user details
 $stmt = $pdo->prepare("
     SELECT u.*, 
-           COUNT(DISTINCT cs.sale_id) as total_sales,
-           COUNT(DISTINCT p.prescription_id) as total_prescriptions,
+           COUNT(DISTINCT a.appointment_id) as total_appointments,
+           COUNT(DISTINCT mr.record_id) as total_medical_records,
            MAX(u.last_login) as last_login_date
-    FROM USER u
-    LEFT JOIN COUNTER_SALE cs ON u.user_id = cs.user_id
-    LEFT JOIN PRESCRIPTION p ON u.user_id = p.user_id
+    FROM `user` u
+    LEFT JOIN `appointment` a ON u.user_id = a.patient_id
+    LEFT JOIN `medical_record` mr ON u.user_id = mr.patient_id
     WHERE u.user_id = ?
     GROUP BY u.user_id
 ");
@@ -27,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $confirm_password = $_POST['confirm_password'];
 
             // Verify current password
-            if (!password_verify($current_password, $user['password_hash'])) {
+            if (!password_verify($current_password, $user['password'])) {
                 throw new Exception("Current password is incorrect");
             }
 
@@ -42,13 +42,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 // Update password
                 $password_hash = password_hash($new_password, PASSWORD_DEFAULT);
-                $stmt = $pdo->prepare("UPDATE USER SET password_hash = ? WHERE user_id = ?");
+                $stmt = $pdo->prepare("UPDATE `user` SET password = ? WHERE user_id = ?");
                 $stmt->execute([$password_hash, $_SESSION['user_id']]);
                 
                 // Log password change
                 $stmt = $pdo->prepare("
-                    INSERT INTO AUDIT_LOG (user_id, timestamp, action, table_affected, record_id)
-                    VALUES (?, CURRENT_TIMESTAMP, 'PASSWORD_CHANGE', 'USER', ?)
+                    INSERT INTO `audit_log` (user_id, timestamp, action, table_affected, record_id)
+                    VALUES (?, CURRENT_TIMESTAMP, 'PASSWORD_CHANGE', 'user', ?)
                 ");
                 $stmt->execute([$_SESSION['user_id'], $_SESSION['user_id']]);
             }
@@ -68,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <!-- Profile Header -->
         <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
             <div class="flex items-center space-x-6">
-                <div class="bg-blue-500 p-4 rounded-full">
+                <div class="bg-teal-500 p-4 rounded-full">
                     <i class="fas fa-user-circle text-4xl text-white"></i>
                 </div>
                 <div>
@@ -97,12 +97,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <h2 class="text-xl font-semibold text-gray-800 mb-6">Activity Overview</h2>
                 <div class="space-y-4">
                     <div class="flex justify-between items-center">
-                        <span class="text-gray-600">Total Sales</span>
-                        <span class="font-semibold"><?php echo number_format($user['total_sales']); ?></span>
+                        <span class="text-gray-600">Total Appointments</span>
+                        <span class="font-semibold"><?php echo number_format($user['total_appointments']); ?></span>
                     </div>
                     <div class="flex justify-between items-center">
-                        <span class="text-gray-600">Prescriptions Handled</span>
-                        <span class="font-semibold"><?php echo number_format($user['total_prescriptions']); ?></span>
+                        <span class="text-gray-600">Medical Records</span>
+                        <span class="font-semibold"><?php echo number_format($user['total_medical_records']); ?></span>
                     </div>
                     <div class="flex justify-between items-center">
                         <span class="text-gray-600">Last Login</span>
@@ -122,7 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             Current Password
                         </label>
                         <input type="password" id="current_password" name="current_password" required
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent">
                     </div>
 
                     <div>
@@ -130,7 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             New Password
                         </label>
                         <input type="password" id="new_password" name="new_password" required
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent">
                     </div>
 
                     <div>
@@ -138,11 +138,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             Confirm New Password
                         </label>
                         <input type="password" id="confirm_password" name="confirm_password" required
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent">
                     </div>
 
                     <button type="submit" name="update_profile"
-                            class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-300">
+                            class="w-full bg-teal-500 hover:bg-teal-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-300">
                         Update Password
                     </button>
                 </form>
@@ -169,7 +169,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <tbody class="bg-white divide-y divide-gray-200">
                             <?php
                             $activity_stmt = $pdo->prepare("
-                                SELECT * FROM AUDIT_LOG 
+                                SELECT * FROM `audit_log` 
                                 WHERE user_id = ? 
                                 ORDER BY timestamp DESC 
                                 LIMIT 5

@@ -15,243 +15,367 @@ $user_id = $_SESSION['user_id'];
 $username = $_SESSION['username'];
 $role = $_SESSION['role'];
 $is_admin = ($role === 'Administrator');
-$is_supplier = ($role === 'Supplier');
 $is_doctor = ($role === 'Doctor');
-$is_cashier = ($role === 'Cashier');
+$is_nurse = ($role === 'Nurse');
+$is_receptionist = ($role === 'Receptionist');
+$is_patient = ($role === 'Patient');
 
-// User Activity variables
+// System Overview variables
 try {
     // Total Users
-    $stmt = $pdo->query("SELECT COUNT(*) FROM USER");
+    $stmt = $pdo->query("SELECT COUNT(*) FROM `user`");
     $total_users = $stmt->fetchColumn() ?: 0;
 
-    // Active Users (last 5 minutes based on last_login)
-    $stmt = $pdo->query("SELECT COUNT(*) FROM USER WHERE last_login >= NOW() - INTERVAL 5 MINUTE");
+    // Active Users (last 5 minutes)
+    $stmt = $pdo->query("SELECT COUNT(*) FROM `user` WHERE last_login >= NOW() - INTERVAL 5 MINUTE");
     $active_users = $stmt->fetchColumn() ?: 0;
-
 } catch (PDOException $e) {
     $total_users = $active_users = 0;
     error_log("User Activity Query Error: " . $e->getMessage());
 }
 
-// Sales Summary variables
+// Hospital Statistics
 try {
-    // Today's Sales
-    $stmt = $pdo->query("SELECT COUNT(*) FROM COUNTER_SALE WHERE DATE(sale_date) = CURRENT_DATE");
-    $todays_sales = $stmt->fetchColumn() ?: 0;
+    // Today's Appointments
+    $stmt = $pdo->query("SELECT COUNT(*) FROM `appointment` WHERE DATE(appointment_date) = CURRENT_DATE");
+    $todays_appointments = $stmt->fetchColumn() ?: 0;
 
-    // This Week's Sales
-    $stmt = $pdo->query("SELECT COUNT(*) FROM COUNTER_SALE WHERE WEEK(sale_date) = WEEK(CURRENT_DATE)");
-    $weekly_sales = $stmt->fetchColumn() ?: 0;
+    // Available Beds
+    $stmt = $pdo->query("SELECT COUNT(*) FROM `resource` WHERE type='BED' AND status='AVAILABLE'");
+    $available_beds = $stmt->fetchColumn() ?: 0;
 
-    // Total Revenue
-    $stmt = $pdo->query("SELECT SUM(total_amount) FROM COUNTER_SALE");
-    $total_revenue = $stmt->fetchColumn() ?: 0.00;
+    // Total Patients
+    $stmt = $pdo->query("SELECT COUNT(*) FROM `patient`");
+    $total_patients = $stmt->fetchColumn() ?: 0;
 } catch (PDOException $e) {
-    $todays_sales = $weekly_sales = 0;
-    $total_revenue = 0.00;
-    error_log("Sales Summary Query Error: " . $e->getMessage());
-}
-
-// Inventory Status variables
-try {
-    // Low Stock Items
-    $stmt = $pdo->query("SELECT COUNT(*) FROM DRUG WHERE stock < 10");
-    $low_stock_items = $stmt->fetchColumn() ?: 0;
-
-    // Out of Stock Items
-    $stmt = $pdo->query("SELECT COUNT(*) FROM DRUG WHERE stock = 0");
-    $out_of_stock_items = $stmt->fetchColumn() ?: 0;
-} catch (PDOException $e) {
-    $low_stock_items = $out_of_stock_items = 0;
-    error_log("Inventory Status Query Error: " . $e->getMessage());
+    $todays_appointments = $available_beds = $total_patients = 0;
+    error_log("Hospital Statistics Query Error: " . $e->getMessage());
 }
 
 // Recent Activity Log
 try {
-    $stmt = $pdo->query("SELECT action FROM AUDIT_LOG ORDER BY timestamp DESC LIMIT 5");
+    $stmt = $pdo->query("SELECT action FROM `audit_log` ORDER BY timestamp DESC LIMIT 5");
     $recent_activities = $stmt->fetchAll(PDO::FETCH_COLUMN) ?: [];
 } catch (PDOException $e) {
     $recent_activities = [];
     error_log("Recent Activity Log Query Error: " . $e->getMessage());
 }
 
-// Define stats for dashboard based on role
-$stats = [];
-if ($is_admin) {
-    $stats = [
-        ['icon' => 'fas fa-pills', 'title' => 'Total Drugs', 'query' => "SELECT COUNT(*) FROM DRUG", 'color' => 'blue'],
-        ['icon' => 'fas fa-user-md', 'title' => 'Doctors', 'query' => "SELECT COUNT(*) FROM DOCTOR", 'color' => 'indigo'],
-        ['icon' => 'fas fa-users', 'title' => 'Customers', 'query' => "SELECT COUNT(*) FROM CUSTOMER", 'color' => 'green'],
-        ['icon' => 'fas fa-file-prescription', 'title' => 'Prescriptions', 'query' => "SELECT COUNT(*) FROM PRESCRIPTION", 'color' => 'purple'],
-        ['icon' => 'fas fa-cash-register', 'title' => 'Total Sales', 'query' => "SELECT COUNT(*) FROM COUNTER_SALE", 'color' => 'yellow']
-    ];
-} elseif ($is_supplier) {
-    $stats = [
-        ['icon' => 'fas fa-box', 'title' => 'Supplied Products', 'query' => "SELECT COUNT(*) FROM DRUG WHERE supplier_id = $user_id", 'color' => 'green'],
-        ['icon' => 'fas fa-truck', 'title' => 'Stock Items', 'query' => "SELECT COUNT(*) FROM stock_item WHERE supplier_id = $user_id", 'color' => 'blue']
-    ];
-} elseif ($is_doctor) {
-    $stats = [
-        ['icon' => 'fas fa-file-prescription', 'title' => 'My Prescriptions', 'query' => "SELECT COUNT(*) FROM PRESCRIPTION WHERE doctor_id = $user_id", 'color' => 'purple']
-    ];
-} elseif ($is_cashier) {
-    $stats = [
-        ['icon' => 'fas fa-cash-register', 'title' => 'My Sales', 'query' => "SELECT COUNT(*) FROM COUNTER_SALE WHERE user_id = $user_id", 'color' => 'blue']
-    ];
+// Fetch doctor-specific information if user is a doctor
+if ($is_doctor) {
+    try {
+        // Get doctor's information
+        $stmt = $pdo->prepare("
+            SELECT d.*, dep.name as department_name 
+            FROM doctor d 
+            LEFT JOIN department dep ON d.department_id = dep.department_id 
+            WHERE d.user_id = ?
+        ");
+        $stmt->execute([$_SESSION['user_id']]);
+        $doctor_info = $stmt->fetch();
+
+        // Get doctor's today's appointments
+        $stmt = $pdo->prepare("
+            SELECT a.*, p.name as patient_name 
+            FROM appointment a 
+            JOIN patient p ON a.patient_id = p.patient_id 
+            WHERE a.doctor_id = ? AND DATE(a.appointment_date) = CURDATE()
+            ORDER BY a.appointment_date
+        ");
+        $stmt->execute([$doctor_info['doctor_id']]);
+        $doctor_appointments = $stmt->fetchAll();
+
+        // Get doctor's pending appointments count
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) as pending_count 
+            FROM appointment 
+            WHERE doctor_id = ? AND status = 'Pending'
+        ");
+        $stmt->execute([$doctor_info['doctor_id']]);
+        $pending_appointments = $stmt->fetch();
+
+        // Get doctor's total patients
+        $stmt = $pdo->prepare("
+            SELECT COUNT(DISTINCT patient_id) as patient_count 
+            FROM appointment 
+            WHERE doctor_id = ?
+        ");
+        $stmt->execute([$doctor_info['doctor_id']]);
+        $doctor_total_patients = $stmt->fetch();
+    } catch (PDOException $e) {
+        error_log("Doctor Dashboard Query Error: " . $e->getMessage());
+    }
 }
 
+// Fetch nurse-specific information
+if ($is_nurse) {
+    try {
+        // Get nurse's information
+        $stmt = $pdo->prepare("
+            SELECT n.*, d.name as department_name 
+            FROM nurse n 
+            LEFT JOIN department d ON n.department_id = d.department_id 
+            WHERE n.user_id = ?
+        ");
+        $stmt->execute([$_SESSION['user_id']]);
+        $nurse_info = $stmt->fetch();
+
+        // Get today's appointments in their department
+        $stmt = $pdo->prepare("
+            SELECT a.*, p.name as patient_name, d.name as doctor_name
+            FROM appointment a 
+            JOIN patient p ON a.patient_id = p.patient_id 
+            JOIN doctor d ON a.doctor_id = d.doctor_id
+            WHERE d.department_id = ? AND DATE(a.appointment_date) = CURDATE()
+            ORDER BY a.appointment_date
+        ");
+        $stmt->execute([$nurse_info['department_id']]);
+        $department_appointments = $stmt->fetchAll();
+
+        // Get patients under care in their department
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) as patient_count 
+            FROM patient p
+            JOIN appointment a ON p.patient_id = a.patient_id
+            JOIN doctor d ON a.doctor_id = d.doctor_id
+            WHERE d.department_id = ? AND a.status = 'Active'
+        ");
+        $stmt->execute([$nurse_info['department_id']]);
+        $department_patients = $stmt->fetch();
+
+    } catch (PDOException $e) {
+        error_log("Nurse Dashboard Query Error: " . $e->getMessage());
+    }
+}
+
+// Fetch patient-specific information
+if ($is_patient) {
+    try {
+        // Get patient's information
+        $stmt = $pdo->prepare("
+            SELECT * FROM patient WHERE user_id = ?
+        ");
+        $stmt->execute([$_SESSION['user_id']]);
+        $patient_info = $stmt->fetch();
+
+        // Get upcoming appointments
+        $stmt = $pdo->prepare("
+            SELECT a.*, d.name as doctor_name, d.specialization,
+                   dep.name as department_name
+            FROM appointment a 
+            JOIN doctor d ON a.doctor_id = d.doctor_id
+            JOIN department dep ON d.department_id = dep.department_id
+            WHERE a.patient_id = ? AND a.appointment_date >= CURDATE()
+            ORDER BY a.appointment_date
+            LIMIT 5
+        ");
+        $stmt->execute([$patient_info['patient_id']]);
+        $upcoming_appointments = $stmt->fetchAll();
+
+        // Get recent prescriptions
+        $stmt = $pdo->prepare("
+            SELECT p.*, d.name as doctor_name
+            FROM prescription p
+            JOIN doctor d ON p.doctor_id = d.doctor_id
+            WHERE p.patient_id = ?
+            ORDER BY p.prescription_date DESC
+            LIMIT 3
+        ");
+        $stmt->execute([$patient_info['patient_id']]);
+        $recent_prescriptions = $stmt->fetchAll();
+
+        // Get unpaid bills
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) as unpaid_count, SUM(amount) as total_unpaid
+            FROM bill
+            WHERE patient_id = ? AND status = 'Unpaid'
+        ");
+        $stmt->execute([$patient_info['patient_id']]);
+        $bills_info = $stmt->fetch();
+
+    } catch (PDOException $e) {
+        error_log("Patient Dashboard Query Error: " . $e->getMessage());
+    }
+}
 ?>
 
 <div class="container mx-auto px-6 py-8">
-    <h2 class="text-3xl font-bold text-gray-800 mb-8 animate__animated animate__fadeIn">
-        Welcome back, <?php echo htmlspecialchars($username); ?>
-        <span class="block text-lg font-normal text-gray-600 mt-2">
-            <?php 
-            if ($is_admin) {
-                echo 'Administrator Dashboard';
-            } elseif ($is_supplier) {
-                echo 'Supplier Dashboard';
-            } elseif ($is_doctor) {
-                echo 'Doctor Dashboard';
-            } elseif ($is_cashier) {
-                echo 'Cashier Dashboard';
-            }
-            ?>
-        </span>
-    </h2>
+    <?php if ($is_patient): ?>
+        <!-- Patient Dashboard -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">Welcome, <?php echo htmlspecialchars($patient_info['name']); ?></h1>
+            <p class="text-gray-600">Patient ID: <?php echo htmlspecialchars($patient_info['patient_id']); ?></p>
+        </div>
 
-    <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-<?php echo $is_admin ? '5' : ($is_supplier ? '2' : ($is_doctor || $is_cashier ? '1' : '3')); ?> gap-6 mb-12">
-        <?php foreach ($stats as $stat): ?>
-            <?php
-            $stmt = $pdo->query($stat['query']);
-            $count = $stmt->fetchColumn();
-            ?>
-            <div class="bg-white rounded-xl shadow-lg p-6 animate__animated animate__fadeInUp">
-                <div class="flex items-center">
-                    <div class="p-4 rounded-full bg-<?php echo $stat['color']; ?>-500 bg-opacity-75">
-                        <i class="<?php echo $stat['icon']; ?> fa-2x text-white"></i>
+        <!-- Quick Actions -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <a href="<?php echo $base_url; ?>appointments/book.php" 
+               class="bg-teal-500 hover:bg-teal-600 text-white rounded-lg p-6 text-center transition duration-300">
+                <i class="fas fa-calendar-plus text-3xl mb-2"></i>
+                <p class="text-lg font-semibold">Book Appointment</p>
+            </a>
+            <a href="<?php echo $base_url; ?>prescriptions/my-prescriptions.php" 
+               class="bg-blue-500 hover:bg-blue-600 text-white rounded-lg p-6 text-center transition duration-300">
+                <i class="fas fa-prescription text-3xl mb-2"></i>
+                <p class="text-lg font-semibold">View Prescriptions</p>
+            </a>
+            <a href="<?php echo $base_url; ?>bills/my-bills.php" 
+               class="bg-green-500 hover:bg-green-600 text-white rounded-lg p-6 text-center transition duration-300">
+                <i class="fas fa-file-invoice-dollar text-3xl mb-2"></i>
+                <p class="text-lg font-semibold">View Bills</p>
+            </a>
+            <a href="<?php echo $base_url; ?>profile.php" 
+               class="bg-purple-500 hover:bg-purple-600 text-white rounded-lg p-6 text-center transition duration-300">
+                <i class="fas fa-user-circle text-3xl mb-2"></i>
+                <p class="text-lg font-semibold">My Profile</p>
+            </a>
+        </div>
+
+        <!-- Upcoming Appointments -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Upcoming Appointments</h2>
+            <?php if (count($upcoming_appointments) > 0): ?>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date & Time</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Doctor</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Department</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <?php foreach ($upcoming_appointments as $appointment): ?>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        <?php echo date('M d, Y H:i', strtotime($appointment['appointment_date'])); ?>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        Dr. <?php echo htmlspecialchars($appointment['doctor_name']); ?>
+                                        <div class="text-xs text-gray-500"><?php echo htmlspecialchars($appointment['specialization']); ?></div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        <?php echo htmlspecialchars($appointment['department_name']); ?>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                            <?php echo $appointment['status'] === 'Confirmed' ? 'bg-green-100 text-green-800' : 
+                                                    ($appointment['status'] === 'Pending' ? 'bg-yellow-100 text-yellow-800' : 
+                                                    'bg-red-100 text-red-800'); ?>">
+                                            <?php echo htmlspecialchars($appointment['status']); ?>
+                                        </span>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php else: ?>
+                <p class="text-gray-500 text-center py-4">No upcoming appointments.</p>
+            <?php endif; ?>
+        </div>
+
+        <!-- Recent Prescriptions and Bills Summary -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Recent Prescriptions -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Recent Prescriptions</h2>
+                <?php if (count($recent_prescriptions) > 0): ?>
+                    <div class="space-y-4">
+                        <?php foreach ($recent_prescriptions as $prescription): ?>
+                            <div class="border-b pb-4">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <p class="font-medium">Dr. <?php echo htmlspecialchars($prescription['doctor_name']); ?></p>
+                                        <p class="text-sm text-gray-500">
+                                            <?php echo date('M d, Y', strtotime($prescription['prescription_date'])); ?>
+                                        </p>
+                                    </div>
+                                    <a href="prescriptions/view.php?id=<?php echo $prescription['prescription_id']; ?>" 
+                                       class="text-teal-600 hover:text-teal-800 text-sm">View Details</a>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
                     </div>
-                    <div class="ml-6">
-                        <h4 class="text-3xl font-bold text-gray-700"><?php echo number_format($count); ?></h4>
-                        <div class="text-gray-500 mt-1"><?php echo $stat['title']; ?></div>
+                <?php else: ?>
+                    <p class="text-gray-500 text-center py-4">No recent prescriptions.</p>
+                <?php endif; ?>
+            </div>
+
+            <!-- Bills Summary -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Bills Summary</h2>
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">Unpaid Bills:</span>
+                        <span class="font-semibold"><?php echo $bills_info['unpaid_count']; ?></span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600">Total Outstanding:</span>
+                        <span class="font-semibold text-red-600">$<?php echo number_format($bills_info['total_unpaid'], 2); ?></span>
+                    </div>
+                    <div class="mt-4">
+                        <a href="<?php echo $base_url; ?>bills/my-bills.php" 
+                           class="block text-center bg-teal-500 hover:bg-teal-600 text-white rounded-md px-4 py-2 transition duration-300">
+                            View All Bills
+                        </a>
                     </div>
                 </div>
-            </div>
-        <?php endforeach; ?>
-    </div>
-
-    <!-- Quick Actions -->
-    <div class="grid grid-cols-1 md:grid-cols-<?php echo $is_admin ? '3' : ($is_supplier ? '2' : '2'); ?> gap-6 mb-8">
-        <?php if ($is_cashier): ?>
-            <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-xl font-bold">New Sale</h3>
-                    <i class="fas fa-cash-register text-3xl"></i>
-                </div>
-                <p class="mb-4">Create a new sale transaction</p>
-                <a href="<?php echo $base_url; ?>sales/new_sale.php" class="inline-block bg-white text-blue-600 px-4 py-2 rounded-lg">
-                    Create Sale <i class="fas fa-arrow-right ml-2"></i>
-                </a>
-            </div>
-        <?php endif; ?>
-
-        <?php if ($is_doctor): ?>
-            <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-xl font-bold">My Prescriptions</h3>
-                    <i class="fas fa-file-prescription text-3xl"></i>
-                </div>
-                <p class="mb-4">View and manage prescriptions you've issued</p>
-                <a href="<?php echo $base_url; ?>prescriptions/my_prescriptions.php" class="inline-block bg-white text-purple-600 px-4 py-2 rounded-lg">
-                    View Prescriptions <i class="fas fa-arrow-right ml-2"></i>
-                </a>
-            </div>
-        <?php endif; ?>
-
-        <?php if ($is_admin): ?>
-            <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-xl font-bold">Inventory</h3>
-                    <i class="fas fa-boxes text-3xl"></i>
-                </div>
-                <p class="mb-4">Manage inventory levels</p>
-                <a href="<?php echo $base_url; ?>inventory/inventory.php" class="inline-block bg-white text-green-600 px-4 py-2 rounded-lg">
-                    Check Stock <i class="fas fa-arrow-right ml-2"></i>
-                </a>
-            </div>
-            <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-xl font-bold">New Sale</h3>
-                    <i class="fas fa-cash-register text-3xl"></i>
-                </div>
-                <p class="mb-4">Create a new sale transaction</p>
-                <a href="<?php echo $base_url; ?>sales/new_sale.php" class="inline-block bg-white text-blue-600 px-4 py-2 rounded-lg">
-                    Create Sale <i class="fas fa-arrow-right ml-2"></i>
-                </a>
-            </div>
-            <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg p-6 text-white">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-xl font-bold">Update Stock</h3>
-                    <i class="fas fa-box text-3xl"></i>
-                </div>
-                <p class="mb-4">View and manage your supplied products</p>
-                <a href="<?php echo $base_url; ?>inventory/inventory.php" class="inline-block bg-white text-orange-600 px-4 py-2 rounded-lg">
-                    Update Stock <i class="fas fa-arrow-right ml-2"></i>
-                </a>
-            </div>
-        <?php endif; ?>
-
-        <?php if ($is_supplier): ?>
-            <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg p-6 text-white">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-xl font-bold">Update Stock</h3>
-                    <i class="fas fa-box text-3xl"></i>
-                </div>
-                <p class="mb-4">View and manage your supplied products</p>
-                <a href="<?php echo $base_url; ?>inventory/inventory.php" class="inline-block bg-white text-orange-600 px-4 py-2 rounded-lg">
-                    Update Stock <i class="fas fa-arrow-right ml-2"></i>
-                </a>
-            </div>
-        <?php endif; ?>
-    </div>
-
-    <?php if ($is_admin): ?>
-        <!-- Admin-only Sections -->
-        <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
-            <h3 class="text-2xl font-bold text-gray-800 mb-6">System Overview</h3>
-
-            <div class="flex justify-between items-center mb-6">
-                <div class="flex flex-col items-start">
-                    <h4 class="text-xl font-semibold text-gray-600">User Activity</h4>
-                    <p class="text-sm text-gray-500">Total Users: <strong><?php echo $total_users; ?></strong></p>
-                    <p class="text-sm text-gray-500">Active Users: <strong><?php echo $active_users; ?></strong></p>
-                </div>
-            </div>
-
-            <div class="flex justify-between items-center mb-6">
-                <div class="flex flex-col items-start">
-                    <h4 class="text-xl font-semibold text-gray-600">Sales Summary</h4>
-                    <p class="text-sm text-gray-500">Today's Sales: <strong><?php echo $todays_sales; ?></strong></p>
-                    <p class="text-sm text-gray-500">This Week's Sales: <strong><?php echo $weekly_sales; ?></strong></p>
-                    <p class="text-sm text-gray-500">Total Revenue: <strong><?php echo number_format($total_revenue, 2); ?></strong></p>
-                </div>
-            </div>
-
-            <div class="flex justify-between items-center mb-6">
-                <div class="flex flex-col items-start">
-                    <h4 class="text-xl font-semibold text-gray-600">Inventory Status</h4>
-                    <p class="text-sm text-gray-500">Low Stock Items: <strong><?php echo $low_stock_items; ?></strong></p>
-                    <p class="text-sm text-gray-500">Out of Stock: <strong><?php echo $out_of_stock_items; ?></strong></p>
-                </div>
-            </div>
-
-            <div class="flex flex-col">
-                <h4 class="text-xl font-semibold text-gray-600">Alerts & Notifications</h4>
-                <p class="text-sm text-gray-500">System is Normal</p>
             </div>
         </div>
+    <?php else: ?>
+        <!-- Original Dashboard Content -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <!-- Dashboard Cards -->
+            <div class="bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl shadow-lg p-6 text-white">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xl font-bold">Today's Appointments</h3>
+                    <i class="fas fa-calendar-check text-3xl"></i>
+                </div>
+                <p class="text-3xl font-semibold"><?php echo $todays_appointments; ?></p>
+            </div>
+
+            <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xl font-bold">Available Beds</h3>
+                    <i class="fas fa-bed text-3xl"></i>
+                </div>
+                <p class="text-3xl font-semibold"><?php echo $available_beds; ?></p>
+            </div>
+
+            <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xl font-bold">Total Patients</h3>
+                    <i class="fas fa-user-injured text-3xl"></i>
+                </div>
+                <p class="text-3xl font-semibold"><?php echo $total_patients; ?></p>
+            </div>
+        </div>
+
+        <?php if ($is_admin): ?>
+            <!-- Admin-only Sections -->
+            <div class="bg-white rounded-xl shadow-lg p-8 mt-8">
+                <h3 class="text-2xl font-bold text-gray-800 mb-6">System Overview</h3>
+
+                <div class="flex justify-between items-center mb-6">
+                    <div class="flex flex-col items-start">
+                        <h4 class="text-xl font-semibold text-gray-600">User Activity</h4>
+                        <p class="text-sm text-gray-500">Total Users: <strong><?php echo $total_users; ?></strong></p>
+                        <p class="text-sm text-gray-500">Active Users: <strong><?php echo $active_users; ?></strong></p>
+                    </div>
+                </div>
+
+                <div class="flex flex-col">
+                    <h4 class="text-xl font-semibold text-gray-600">Recent Activities</h4>
+                    <ul class="list-disc pl-5 text-sm text-gray-500">
+                        <?php foreach ($recent_activities as $activity): ?>
+                            <li><?php echo htmlspecialchars($activity); ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+            </div>
+        <?php endif; ?>
     <?php endif; ?>
 </div>
 

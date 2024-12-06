@@ -10,144 +10,146 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $is_admin = ($_SESSION['role'] === 'Administrator');
-$is_supplier = ($_SESSION['role'] === 'Supplier');
 $is_doctor = ($_SESSION['role'] === 'Doctor');
+$is_nurse = ($_SESSION['role'] === 'Nurse');
+$is_receptionist = ($_SESSION['role'] === 'Receptionist');
+$is_patient = ($_SESSION['role'] === 'Patient');
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PharmaCare - Pharmacy Management System</title>
+    <title>HMS - Hospital Management System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        .nav-link {
-            @apply flex items-center space-x-2 px-4 py-2 text-white hover:bg-blue-700 rounded-lg transition-colors;
-        }
-        .nav-icon {
-            @apply text-lg text-white;
-        }
-    </style>
 </head>
+
 <body class="bg-gray-100">
-    <nav class="bg-blue-600 shadow-lg">
+    <nav class="bg-teal-600 shadow-lg">
         <div class="container mx-auto px-4">
-            <div class="flex items-center h-16">
-                <!-- Logo Section -->
-                <div class="flex-shrink-0">
-                    <a href="<?php echo $base_url; ?>" class="flex items-center space-x-2">
-                        <i class="fas fa-clinic-medical text-2xl text-white"></i>
-                        <span class="text-white text-lg font-semibold">PharmaCare</span>
+            <div class="flex items-center justify-between h-16">
+                <a href="<?php echo $base_url; ?>" class="flex items-center space-x-2">
+                    <i class="fas fa-hospital text-2xl text-white"></i>
+                    <span class="text-white text-lg font-semibold">HMS</span>
+                </a>
+
+                <div class="flex space-x-4">
+                    <a href="<?php echo $base_url; ?>" class="text-white hover:bg-teal-700 px-3 py-2 rounded-md">
+                        <i class="fas fa-home mr-2"></i>Dashboard
                     </a>
-                </div>
-
-                <!-- Navigation Links - Centered -->
-                <div class="flex-grow flex justify-center space-x-4">
-                    <a href="<?php echo $base_url; ?>" class="nav-link text-white">
-                        <i class="fas fa-home nav-icon text-white"></i>
-                        <span>Dashboard</span>
-                    </a>
-
-                    <?php if ($is_doctor): ?>
-                        <!-- Doctor-only accessible links -->
-                        <a href="<?php echo $base_url; ?>prescriptions/prescriptions.php" class="nav-link text-white">
-                            <i class="fas fa-file-prescription nav-icon text-white"></i>
-                            <span>Prescriptions</span>
-                        </a>
-                    <?php endif; ?>
-
-                    <?php if (!$is_supplier && !$is_doctor): // Exclude sales, prescriptions, and customers for suppliers and doctors ?>
-                        <a href="<?php echo $base_url; ?>sales/sales.php" class="nav-link text-white">
-                            <i class="fas fa-cash-register nav-icon text-white"></i>
-                            <span>Sales</span>
-                        </a>
-
-                        <a href="<?php echo $base_url; ?>prescriptions/prescriptions.php" class="nav-link text-white">
-                            <i class="fas fa-file-prescription nav-icon text-white"></i>
-                            <span>Prescriptions</span>
-                        </a>
-
-                        <a href="<?php echo $base_url; ?>customers/customers.php" class="nav-link text-white">
-                            <i class="fas fa-users nav-icon text-white"></i>
-                            <span>Customers</span>
-                        </a>
-                    <?php endif; ?>
 
                     <?php if ($is_admin): ?>
-                        <a href="<?php echo $base_url; ?>inventory/inventory.php" class="nav-link text-white">
-                            <i class="fas fa-boxes nav-icon text-white"></i>
-                            <span>Inventory</span>
-                        </a>
+                        <!-- Admin Management Dropdown -->
+                        <div class="relative group">
+                            <button class="text-white hover:bg-teal-700 px-3 py-2 rounded-md inline-flex items-center">
+                                <i class="fas fa-cogs mr-2"></i>
+                                <span>Management</span>
+                                <i class="fas fa-chevron-down ml-2"></i>
+                            </button>
+                            <div class="hidden group-hover:block absolute left-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
+                                <div class="py-1">
+                                    <a href="<?php echo $base_url; ?>staff/manage.php"
+                                        class="block px-4 py-2 text-sm text-gray-700 hover:bg-teal-500 hover:text-white">
+                                        <i class="fas fa-users mr-2"></i>Staff Management
+                                    </a>
+                                    <a href="<?php echo $base_url; ?>resources/manage.php"
+                                        class="block px-4 py-2 text-sm text-gray-700 hover:bg-teal-500 hover:text-white">
+                                        <i class="fas fa-box mr-2"></i>Resources
+                                    </a>
+                                    <a href="<?php echo $base_url; ?>medicines/manage.php"
+                                        class="block px-4 py-2 text-sm text-gray-700 hover:bg-teal-500 hover:text-white">
+                                        <i class="fas fa-pills mr-2"></i>Medicines
+                                    </a>
+                                    <a href="<?php echo $base_url; ?>bills/manage.php"
+                                        class="block px-4 py-2 text-sm text-gray-700 hover:bg-teal-500 hover:text-white">
+                                        <i class="fas fa-file-invoice-dollar mr-2"></i>Bills
+                                    </a>
+                                    <a href="<?php echo $base_url; ?>departments/manage.php"
+                                        class="block px-4 py-2 text-sm text-gray-700 hover:bg-teal-500 hover:text-white">
+                                        <i class="fas fa-hospital-alt mr-2"></i>Departments
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endif; ?>
 
-                        <a href="<?php echo $base_url; ?>suppliers/suppliers.php" class="nav-link text-white">
-                            <i class="fas fa-truck nav-icon text-white"></i>
-                            <span>Suppliers</span>
+                    <?php if ($is_doctor): ?>
+                        <a href="<?php echo $base_url; ?>appointments/manage.php" class="text-white hover:bg-teal-700 px-3 py-2 rounded-md">
+                            <i class="fas fa-calendar-check mr-2"></i>Appointments
                         </a>
-
-                        <a href="<?php echo $base_url; ?>doctors/doctors.php" class="nav-link text-white">
-                            <i class="fas fa-user-md nav-icon text-white"></i>
-                            <span>Doctors</span>
+                        <a href="<?php echo $base_url; ?>patients/manage.php" class="text-white hover:bg-teal-700 px-3 py-2 rounded-md">
+                            <i class="fas fa-user-injured mr-2"></i>Patients
                         </a>
-
-                        <a href="<?php echo $base_url; ?>users/users.php" class="nav-link text-white">
-                            <i class="fas fa-users-cog nav-icon text-white"></i>
-                            <span>Users</span>
+                        <a href="<?php echo $base_url; ?>prescriptions/manage.php" class="text-white hover:bg-teal-700 px-3 py-2 rounded-md">
+                            <i class="fas fa-prescription mr-2"></i>Prescriptions
                         </a>
                     <?php endif; ?>
 
-                    <?php if ($is_admin || $is_supplier): ?>
-                        <a href="<?php echo $base_url; ?>invoices/invoices.php" class="nav-link text-white">
-                            <i class="fas fa-file-invoice nav-icon text-white"></i>
-                            <span>Invoices</span>
+                    <?php if ($is_nurse): ?>
+                        <a href="<?php echo $base_url; ?>patients/manage.php" class="text-white hover:bg-teal-700 px-3 py-2 rounded-md">
+                            <i class="fas fa-user-injured mr-2"></i>Patients
+                        </a>
+                        <a href="<?php echo $base_url; ?>appointments/manage.php" class="text-white hover:bg-teal-700 px-3 py-2 rounded-md">
+                            <i class="fas fa-calendar-check mr-2"></i>Appointments
+                        </a>
+                        <a href="<?php echo $base_url; ?>medicines/view.php" class="text-white hover:bg-teal-700 px-3 py-2 rounded-md">
+                            <i class="fas fa-pills mr-2"></i>Medicines
                         </a>
                     <?php endif; ?>
 
-                    <?php if ($is_supplier): ?>
-                        <a href="<?php echo $base_url; ?>inventory/inventory.php" class="nav-link text-white">
-                            <i class="fas fa-truck nav-icon text-white"></i>
-                            <span>Update Stock</span>
+                    <?php if ($is_patient): ?>
+                        <a href="<?php echo $base_url; ?>appointments/book.php" class="text-white hover:bg-teal-700 px-3 py-2 rounded-md">
+                            <i class="fas fa-calendar-plus mr-2"></i>Book Appointment
+                        </a>
+                        <a href="<?php echo $base_url; ?>appointments/my-appointments.php" class="text-white hover:bg-teal-700 px-3 py-2 rounded-md">
+                            <i class="fas fa-calendar-check mr-2"></i>My Appointments
+                        </a>
+                        <a href="<?php echo $base_url; ?>prescriptions/my-prescriptions.php" class="text-white hover:bg-teal-700 px-3 py-2 rounded-md">
+                            <i class="fas fa-prescription mr-2"></i>My Prescriptions
+                        </a>
+                        <a href="<?php echo $base_url; ?>bills/my-bills.php" class="text-white hover:bg-teal-700 px-3 py-2 rounded-md">
+                            <i class="fas fa-file-invoice-dollar mr-2"></i>My Bills
                         </a>
                     <?php endif; ?>
                 </div>
 
-                <!-- User Profile Dropdown -->
-                <div class="flex-shrink-0 relative">
-                    <button class="flex items-center space-x-2 text-white hover:bg-blue-700 rounded-lg px-3 py-2 transition-colors">
-                        <i class="fas fa-user-circle text-xl text-white"></i>
-                        <span><?php echo htmlspecialchars($_SESSION['username']); ?></span>
-                    </button>
-                    <div class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl py-2 z-10">
-                        <a href="<?php echo $base_url; ?>profile.php" class="block px-4 py-2 text-gray-800 hover:bg-blue-500 hover:text-white">
-                            <i class="fas fa-user-cog mr-2"></i>Profile
-                        </a>
-                        <a href="<?php echo $base_url; ?>logout.php" class="block px-4 py-2 text-gray-800 hover:bg-blue-500 hover:text-white">
-                            <i class="fas fa-sign-out-alt mr-2"></i>Logout
-                        </a>
-                    </div>
+                <!-- User Info and Logout -->
+                <div class="flex items-center space-x-4">
+                    <span class="text-white">
+                        <i class="fas fa-user-circle mr-2"></i>
+                        <?php echo htmlspecialchars($_SESSION['username']); ?>
+                    </span>
+                    <a href="<?php echo $base_url; ?>logout.php"
+                        class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md transition duration-300">
+                        <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                    </a>
                 </div>
+
             </div>
         </div>
     </nav>
 
     <script>
-    // Toggle dropdown menu
-    document.addEventListener('DOMContentLoaded', function() {
-        const dropdownButton = document.querySelector('.relative button');
-        const dropdownMenu = document.querySelector('.relative .hidden');
-        
-        dropdownButton.addEventListener('click', function() {
-            dropdownMenu.classList.toggle('hidden');
-        });
+        // Add event listeners for dropdown functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const dropdownButton = document.querySelector('.relative button');
+            const dropdownMenu = document.querySelector('.relative .hidden');
 
-        // Close dropdown when clicking outside
-        document.addEventListener('click', function(event) {
-            if (!dropdownButton.contains(event.target) && !dropdownMenu.contains(event.target)) {
-                dropdownMenu.classList.add('hidden');
-            }
+            dropdownButton.addEventListener('click', function() {
+                dropdownMenu.classList.toggle('hidden');
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(event) {
+                if (!dropdownButton.contains(event.target) && !dropdownMenu.contains(event.target)) {
+                    dropdownMenu.classList.add('hidden');
+                }
+            });
         });
-    });
     </script>
 </body>
+
 </html>

@@ -1,12 +1,12 @@
     </div>
-    <footer class="bg-blue-600 text-white mt-auto">
+    <footer class="bg-teal-600 text-white mt-auto">
         <div class="container mx-auto px-6 py-8">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
                 <!-- Company Info -->
                 <div class="animate__animated animate__fadeIn">
-                    <h3 class="text-lg font-semibold mb-4">PharmaCare</h3>
+                    <h3 class="text-lg font-semibold mb-4">HMS</h3>
                     <p class="text-sm text-gray-100">
-                        Your trusted pharmacy management solution for efficient healthcare delivery.
+                        Your comprehensive hospital management solution for efficient healthcare delivery.
                     </p>
                 </div>
 
@@ -30,7 +30,7 @@
                         </li>
                         <li class="flex items-center space-x-2">
                             <i class="fas fa-envelope"></i>
-                            <span>support@pharmacare.com</span>
+                            <span>support@hms.com</span>
                         </li>
                     </ul>
                 </div>
@@ -53,15 +53,16 @@
             </div>
 
             <!-- Copyright -->
-            <div class="border-t border-blue-500 mt-8 pt-8 text-center text-sm">
-                <p>&copy; <?php echo date('Y'); ?> PharmaCare. All rights reserved.</p>
+            <div class="border-t border-teal-500 mt-8 pt-8 text-center text-sm">
+                <p>&copy; <?php echo date('Y'); ?> HMS. All rights reserved.</p>
                 <?php if (isset($_SESSION['last_login'])): ?>
-                <p class="mt-2 text-sm text-gray-300">
-                    Last login: <?php echo date('Y-m-d H:i:s', $_SESSION['last_login']); ?>
-                </p>
+                    <p class="mt-2 text-sm text-gray-300">
+                        Last login: <?php echo date('Y-m-d H:i:s', $_SESSION['last_login']); ?>
+                    </p>
                 <?php endif; ?>
             </div>
         </div>
     </footer>
-</body>
-</html> 
+    </body>
+
+    </html>

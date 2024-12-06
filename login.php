@@ -1,4 +1,5 @@
 <?php
+define('ENVIRONMENT', 'development');
 require_once 'includes/db_connect.php';
 session_start();
 
@@ -20,12 +21,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // Get user from database
-        $stmt = $pdo->prepare("SELECT user_id, username, password_hash, role FROM USER WHERE username = ? LIMIT 1");
-        $stmt->execute([$username]);
+        $stmt = $pdo->prepare("SELECT user_id, username, password, role FROM `user` WHERE username = ? AND password = ? LIMIT 1");
+        $stmt->execute([$username, $password]);
         $user = $stmt->fetch();
 
-        // Verify password and check if user exists
-        if (!$user || !password_verify($password, $user['password_hash'])) {
+        // Check if user exists
+        if (!$user) {
             throw new Exception("Invalid username or password.");
         }
 
@@ -48,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // Update last login time
-        $pdo->prepare("UPDATE USER SET last_login = CURRENT_TIMESTAMP WHERE user_id = ?")->execute([$user['user_id']]);
+        $pdo->prepare("UPDATE user SET last_login = CURRENT_TIMESTAMP WHERE user_id = ?")->execute([$user['user_id']]);
 
         // Redirect to home page after login
         header("Location: index.php");
@@ -66,27 +67,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - PharmaCare Management System</title>
+    <title>Login - Hospital Management System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center">
-    <div class="max-w-md w-full mx-4">
-        <div class="bg-white rounded-xl shadow-lg p-8 animate__animated animate__fadeIn">
-            <div class="text-center mb-8">
-                <div class="flex justify-center mb-4">
-                    <div class="bg-blue-500 p-3 rounded-full">
-                        <i class="fas fa-clinic-medical text-3xl text-white"></i>
+<body class="bg-gradient-to-br from-green-50 to-teal-100 min-h-screen flex items-center justify-center p-4">
+    <div class="max-w-md w-full">
+        <div class="bg-white/90 backdrop-blur-lg rounded-3xl shadow-2xl p-10 animate__animated animate__fadeIn">
+            <div class="text-center mb-10">
+                <div class="flex justify-center mb-6">
+                    <div class="bg-gradient-to-r from-green-600 to-teal-600 p-5 rounded-full shadow-lg">
+                        <i class="fas fa-hospital text-4xl text-white"></i>
                     </div>
                 </div>
-                <h1 class="text-2xl font-bold text-gray-800">PharmaCare</h1>
-                <p class="text-gray-600">Management System</p>
+                <h1 class="text-4xl font-bold text-gray-800 mb-2">Welcome Back</h1>
+                <p class="text-teal-600 font-medium">Hospital Management System</p>
             </div>
 
             <?php if (isset($error)): ?>
-                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4 animate__animated animate__shake" role="alert">
-                    <span class="block sm:inline"><?php echo htmlspecialchars($error); ?></span>
+                <div class="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-lg mb-6 animate__animated animate__shake" role="alert">
+                    <p class="font-medium">Login Error</p>
+                    <p><?php echo htmlspecialchars($error); ?></p>
                 </div>
             <?php endif; ?>
 
@@ -98,7 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <i class="fas fa-user"></i>
                         </span>
                         <input type="text" id="username" name="username" required
-                               class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               class="w-full pl-10 pr-3 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors"
                                placeholder="Enter your username">
                     </div>
                 </div>
@@ -110,26 +112,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <i class="fas fa-lock"></i>
                         </span>
                         <input type="password" id="password" name="password" required
-                               class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               class="w-full pl-10 pr-3 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 transition-colors"
                                placeholder="Enter your password">
                     </div>
                 </div>
 
                 <button type="submit" 
-                        class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-300 flex items-center justify-center">
-                    <i class="fas fa-sign-in-alt mr-2"></i>
-                    Login
+                        class="w-full bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white font-semibold py-3 px-4 rounded-xl transition duration-300 transform hover:scale-[1.02] flex items-center justify-center space-x-2 shadow-lg">
+                    <i class="fas fa-sign-in-alt"></i>
+                    <span>Login</span>
                 </button>
             </form>
 
-            <div class="mt-6 text-center text-sm text-gray-600">
-                <p>Demo Credentials:</p>
-                <p>Username: admin | Password: password</p>
+            <?php if (ENVIRONMENT === 'development'): ?>
+            <div class="mt-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                <p class="text-sm text-gray-600 font-medium mb-2">Demo Credentials:</p>
+                <div class="space-y-1 text-sm text-gray-500">
+                    <p><span class="font-medium">Admin:</span> admin / password</p>
+                    <p><span class="font-medium">Doctor:</span> doctor / password</p>
+                    <p><span class="font-medium">Nurse:</span> nurse / password</p>
+                </div>
             </div>
+            <?php endif; ?>
 
-            <div class="mt-6 pt-6 border-t border-gray-200 text-center text-sm text-gray-600">
-                <p>Don't have an account? 
-                    <a href="signup.php" class="text-blue-500 hover:text-blue-600 font-semibold">
+            <div class="mt-6 pt-6 border-t border-gray-200 text-center">
+                <p class="text-gray-600 text-sm">
+                    Don't have an account? 
+                    <a href="signup.php" class="text-teal-600 hover:text-teal-700 font-semibold transition-colors">
                         Sign up here
                     </a>
                 </p>
